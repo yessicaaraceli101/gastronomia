@@ -9,462 +9,113 @@
   <link rel="stylesheet" href="assets/css/dashboard.css" />
   <link rel="stylesheet" href="assets/css/facturacion.css" />
   <style>
-    /* Estilos para el combobox dentro del modal */
-    .op-combobox {
-      position: relative;
-      width: 100%;
-    }
+    .op-combobox { position: relative; width: 100%; }
     .op-combobox input {
-      width: 100%;
-      padding: 9px 10px;
-      border: 1px solid #dde1e8;
-      border-radius: 8px;
-      font-size: 14px;
-      color: #1c2230;
-      background: #fff;
-      transition: border-color 0.12s, box-shadow 0.12s;
+      width: 100%; padding: 9px 10px; border: 1px solid #dde1e8; border-radius: 8px;
+      font-size: 14px; color: #1c2230; background: #fff; transition: border-color 0.12s, box-shadow 0.12s;
     }
-    .op-combobox input:focus {
-      outline: none;
-      border-color: #6c8cff;
-      box-shadow: 0 0 0 3px rgba(108,140,255,0.15);
-    }
+    .op-combobox input:focus { outline: none; border-color: #6c8cff; box-shadow: 0 0 0 3px rgba(108,140,255,0.15); }
     .op-combobox .options {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: #fff;
-      border: 1px solid #dde1e8;
-      border-top: none;
-      border-radius: 0 0 8px 8px;
-      max-height: 200px;
-      overflow-y: auto;
-      z-index: 10;
-      display: none;
+      position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #dde1e8;
+      border-top: none; border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto; z-index: 10; display: none;
     }
     .op-combobox .options.show { display: block; }
-    .op-combobox .options .option-item {
-      padding: 8px 12px;
-      cursor: pointer;
-      font-size: 13px;
-      border-bottom: 1px solid #f2f3f6;
-    }
+    .op-combobox .options .option-item { padding: 8px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f2f3f6; }
     .op-combobox .options .option-item:hover { background: #f7f8fa; }
     .op-combobox .options .option-item:last-child { border-bottom: none; }
-    .op-combobox .options .no-results {
-      padding: 8px 12px;
-      color: #9aa2b1;
-      font-size: 13px;
-    }
-    /* Ocultar/mostrar banco */
-    .op-banco-wrap {
-      display: none;
-    }
-    .op-banco-wrap.visible {
-      display: block;
-    }
-    /* Ajustes para el grid del modal */
-    .op-grid {
-      display: grid;
-      gap: 14px;
-      margin-bottom: 14px;
-    }
+    .op-combobox .options .no-results { padding: 8px 12px; color: #9aa2b1; font-size: 13px; }
+    .op-banco-wrap { display: none; }
+    .op-banco-wrap.visible { display: block; }
+    .op-grid { display: grid; gap: 14px; margin-bottom: 14px; }
     .op-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
     .op-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
     .op-field.span-2 { grid-column: span 2; }
     .op-field.span-3 { grid-column: span 3; }
     .op-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-    .op-field label {
-      font-size: 12px;
-      font-weight: 600;
-      color: #565f70;
+    .op-field label { font-size: 12px; font-weight: 600; color: #565f70; }
+    .op-field label .hint { font-weight: 400; color: #9aa2b1; margin-left: 4px; }
+    .op-field input, .op-field select {
+      width: 100%; padding: 9px 10px; border: 1px solid #dde1e8; border-radius: 8px;
+      font-size: 14px; color: #1c2230; background: #fff; transition: border-color 0.12s, box-shadow 0.12s;
     }
-    .op-field label .hint {
-      font-weight: 400;
-      color: #9aa2b1;
-      margin-left: 4px;
-    }
-    .op-field input,
-    .op-field select {
-      width: 100%;
-      padding: 9px 10px;
-      border: 1px solid #dde1e8;
-      border-radius: 8px;
-      font-size: 14px;
-      color: #1c2230;
-      background: #fff;
-      transition: border-color 0.12s, box-shadow 0.12s;
-    }
-    .op-field input:focus,
-    .op-field select:focus {
-      outline: none;
-      border-color: #6c8cff;
-      box-shadow: 0 0 0 3px rgba(108,140,255,0.15);
-    }
-    .op-field input[readonly] {
-      background: #f7f8fa;
-      color: #565f70;
-    }
+    .op-field input:focus, .op-field select:focus { outline: none; border-color: #6c8cff; box-shadow: 0 0 0 3px rgba(108,140,255,0.15); }
+    .op-field input[readonly] { background: #f7f8fa; color: #565f70; }
     .op-field input.mono { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; }
     .op-field input:disabled { background: #f2f3f6; color: #b0b7c3; }
-    .op-divider {
-      border: none;
-      border-top: 1px solid #eef0f3;
-      margin: 18px 0;
-    }
-    .op-cab-totales .op-field.total input {
-      font-weight: 700;
-      font-size: 15px;
-      color: #1c2230;
-      background: #f7f8fa;
-    }
-    .op-section-label {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin: 6px 0 10px;
-    }
-    .op-section-label h4 {
-      margin: 0;
-      font-size: 14px;
-      font-weight: 700;
-      color: #1c2230;
-    }
+    .op-divider { border: none; border-top: 1px solid #eef0f3; margin: 18px 0; }
+    .op-cab-totales .op-field.total input { font-weight: 700; font-size: 15px; color: #1c2230; background: #f7f8fa; }
+    .op-section-label { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 10px; }
+    .op-section-label h4 { margin: 0; font-size: 14px; font-weight: 700; color: #1c2230; }
     .op-add-row {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 7px 12px;
-      border: 1px solid #dde1e8;
-      border-radius: 8px;
-      background: #fff;
-      color: #3557ff;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.12s;
+      display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 1px solid #dde1e8;
+      border-radius: 8px; background: #fff; color: #3557ff; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.12s;
     }
     .op-add-row:hover { background: #f4f6ff; }
     .op-add-row svg { width: 15px; height: 15px; }
-    .op-cuentas-wrap {
-      border: 1px solid #eef0f3;
-      border-radius: 10px;
-      overflow: hidden;
-      margin-bottom: 16px;
-    }
-    table.op-cuentas {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-    table.op-cuentas thead th {
-      text-align: left;
-      background: #f7f8fa;
-      color: #565f70;
-      font-weight: 600;
-      font-size: 12px;
-      padding: 9px 10px;
-      border-bottom: 1px solid #eef0f3;
-    }
-    table.op-cuentas tbody td {
-      padding: 8px 10px;
-      border-bottom: 1px solid #f2f3f6;
-      vertical-align: middle;
-    }
+    .op-cuentas-wrap { border: 1px solid #eef0f3; border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+    table.op-cuentas { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.op-cuentas thead th { text-align: left; background: #f7f8fa; color: #565f70; font-weight: 600; font-size: 12px; padding: 9px 10px; border-bottom: 1px solid #eef0f3; }
+    table.op-cuentas tbody td { padding: 8px 10px; border-bottom: 1px solid #f2f3f6; vertical-align: middle; }
     table.op-cuentas tbody tr:last-child td { border-bottom: none; }
-    table.op-cuentas tbody tr.op-empty-rows td {
-      text-align: center;
-      color: #9aa2b1;
-      padding: 18px 10px;
-      font-style: italic;
-    }
-    table.op-cuentas input,
-    table.op-cuentas select {
-      width: 100%;
-      padding: 7px 8px;
-      border: 1px solid #dde1e8;
-      border-radius: 6px;
-      font-size: 13px;
-    }
+    table.op-cuentas tbody tr.op-empty-rows td { text-align: center; color: #9aa2b1; padding: 18px 10px; font-style: italic; }
+    table.op-cuentas input, table.op-cuentas select { width: 100%; padding: 7px 8px; border: 1px solid #dde1e8; border-radius: 6px; font-size: 13px; }
     table.op-cuentas input[readonly] { background: #f7f8fa; color: #565f70; }
-    .op-row-remove {
-      border: none;
-      background: transparent;
-      color: #b0b7c3;
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+    .op-row-remove { border: none; background: transparent; color: #b0b7c3; cursor: pointer; padding: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
     .op-row-remove:hover { background: #fdeceb; color: #b3261e; }
     .op-row-remove svg { width: 15px; height: 15px; }
-    .op-totales-asiento {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-    }
-    .op-total-chip {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 14px;
-      border-radius: 8px;
-      background: #f7f8fa;
-      font-size: 13px;
-      color: #565f70;
-    }
+    .op-totales-asiento { display: flex; gap: 10px; justify-content: flex-end; }
+    .op-total-chip { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 8px; background: #f7f8fa; font-size: 13px; color: #565f70; }
     .op-total-chip strong { color: #1c2230; font-size: 14px; }
     .op-total-chip.destacado { background: #eef2ff; color: #3557ff; }
     .op-total-chip.destacado strong { color: #2540d1; }
-    .op-foot {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 24px;
-      border-top: 1px solid #eef0f3;
-      flex-shrink: 0;
-      background: #fbfbfc;
-    }
-    .op-code {
-      font-size: 13px;
-      color: #565f70;
-    }
-    .op-code .code-display {
-      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-      font-weight: 700;
-      color: #1c2230;
-    }
+    .op-foot { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-top: 1px solid #eef0f3; flex-shrink: 0; background: #fbfbfc; }
+    .op-code { font-size: 13px; color: #565f70; }
+    .op-code .code-display { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-weight: 700; color: #1c2230; }
     .op-foot-actions { display: flex; gap: 10px; }
-    .op-btn {
-      padding: 9px 18px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      border: 1px solid #dde1e8;
-      background: #fff;
-      color: #565f70;
-      transition: background 0.12s, opacity 0.12s;
-    }
+    .op-btn { padding: 9px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid #dde1e8; background: #fff; color: #565f70; transition: background 0.12s, opacity 0.12s; }
     .op-btn:hover { background: #f2f3f6; }
-    .op-btn-guardar {
-      border-color: transparent;
-      background: #3557ff;
-      color: #fff;
-    }
+    .op-btn-guardar { border-color: transparent; background: #3557ff; color: #fff; }
     .op-btn-guardar:hover { background: #2c47dd; }
-    .op-btn-guardar:disabled {
-      background: #c3ccf5;
-      cursor: not-allowed;
-    }
-    .op-msg {
-      display: none;
-      font-size: 13px;
-      font-weight: 600;
-      padding: 10px 12px;
-      border-radius: 8px;
-      margin-bottom: 14px;
-    }
+    .op-btn-guardar:disabled { background: #c3ccf5; cursor: not-allowed; }
+    .op-msg { display: none; font-size: 13px; font-weight: 600; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; }
     .op-msg.show { display: block; }
     .op-msg.error { background: #fdeceb; color: #b3261e; }
     .op-msg.success { background: #e8f7ee; color: #1e7e42; }
-
-    /* ============================================================
-       MODAL A PANTALLA COMPLETA — antes era una tarjeta chica
-       centrada que obligaba a scrollear mucho. Ahora ocupa toda la
-       ventana; el encabezado y el pie quedan fijos, y solo el
-       cuerpo del medio (op-body) scrollea.
-       ============================================================ */
-    #op-overlay.op-overlay {
-      padding: 0 !important;
-      align-items: stretch !important;
-      justify-content: stretch !important;
-    }
-    #op-overlay .op-card {
-      width: 100vw !important;
-      max-width: 100vw !important;
-      height: 100vh !important;
-      max-height: 100vh !important;
-      border-radius: 0 !important;
-      display: flex !important;
-      flex-direction: column !important;
-      margin: 0 !important;
-    }
-    #op-overlay .op-head,
-    #op-overlay .op-foot {
-      flex-shrink: 0;
-    }
-    #op-overlay .op-body {
-      flex: 1 1 auto;
-      overflow-y: auto;
-      max-width: 1100px;
-      width: 100%;
-      margin: 0 auto;
-      padding-left: 24px;
-      padding-right: 24px;
-      box-sizing: border-box;
-    }
-
-    /* Dos columnas: izquierda (cliente/pago/cobro), derecha (productos,
-       más ancha porque la tabla necesita más lugar). */
-    .op-columns {
-      display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 28px;
-      align-items: start;
-    }
+    #op-overlay.op-overlay { padding: 0 !important; align-items: stretch !important; justify-content: stretch !important; }
+    #op-overlay .op-card { width: 100vw !important; max-width: 100vw !important; height: 100vh !important; max-height: 100vh !important; border-radius: 0 !important; display: flex !important; flex-direction: column !important; margin: 0 !important; }
+    #op-overlay .op-head, #op-overlay .op-foot { flex-shrink: 0; }
+    #op-overlay .op-body { flex: 1 1 auto; overflow-y: auto; max-width: 1100px; width: 100%; margin: 0 auto; padding-left: 24px; padding-right: 24px; box-sizing: border-box; }
+    .op-columns { display: grid; grid-template-columns: 340px 1fr; gap: 28px; align-items: start; }
     .op-col-left .op-grid { margin-bottom: 14px; }
-    @media (max-width: 900px) {
-      .op-columns { grid-template-columns: 1fr; }
-    }
-
-    /* ============================================================
-       COBRO RÁPIDO: Monto recibido / Vuelto — grande, imposible de
-       no ver, para cobrar en efectivo en dos toques.
-       ============================================================ */
-    .op-cobro-rapido {
-      display: none;
-      grid-template-columns: 1fr 1fr;
-      gap: 32px;
-      background: #f0fdf4;
-      border: 2px solid #86efac;
-      border-radius: 16px;
-      padding: 28px 36px;
-      margin-top: 20px;
-      margin-bottom: 8px;
-    }
+    @media (max-width: 900px) { .op-columns { grid-template-columns: 1fr; } }
+    .op-cobro-rapido { display: none; grid-template-columns: 1fr 1fr; gap: 32px; background: #f0fdf4; border: 2px solid #86efac; border-radius: 16px; padding: 28px 36px; margin-top: 20px; margin-bottom: 8px; }
     .op-cobro-rapido.visible { display: grid; }
     .op-cobro-campo { display: flex; flex-direction: column; gap: 10px; }
-    .op-cobro-campo label {
-      font-size: 16px;
-      font-weight: 800;
-      color: #166534;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      white-space: nowrap;
-    }
-    .op-cobro-input {
-      width: 100%;
-      padding: 22px 22px;
-      border: 3px solid #86efac;
-      border-radius: 14px;
-      font-size: 48px;
-      font-weight: 800;
-      color: #14532d;
-      background: #fff;
-      box-sizing: border-box;
-    }
-    .op-cobro-input:focus {
-      outline: none;
-      border-color: #22c55e;
-      box-shadow: 0 0 0 4px rgba(34,197,94,0.2);
-    }
-    .op-cobro-vuelto {
-      font-size: 56px;
-      font-weight: 900;
-      color: #166534;
-      padding: 18px 18px;
-      display: flex;
-      align-items: center;
-    }
+    .op-cobro-campo label { font-size: 16px; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+    .op-cobro-input { width: 100%; padding: 22px 22px; border: 3px solid #86efac; border-radius: 14px; font-size: 48px; font-weight: 800; color: #14532d; background: #fff; box-sizing: border-box; }
+    .op-cobro-input:focus { outline: none; border-color: #22c55e; box-shadow: 0 0 0 4px rgba(34,197,94,0.2); }
+    .op-cobro-vuelto { font-size: 56px; font-weight: 900; color: #166534; padding: 18px 18px; display: flex; align-items: center; }
     .op-cobro-vuelto.negativo { color: #b3261e; }
-
-    /* ============================================================
-       Datos fiscales (opcional) — colapsado por defecto
-       ============================================================ */
-    .op-avanzado {
-      border: 1px solid #eef0f3;
-      border-radius: 10px;
-      margin: 18px 0 16px;
-      overflow: hidden;
-    }
-    .op-avanzado summary {
-      cursor: pointer;
-      padding: 12px 16px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #565f70;
-      background: #f7f8fa;
-      list-style: none;
-      user-select: none;
-    }
+    .op-avanzado { border: 1px solid #eef0f3; border-radius: 10px; margin: 18px 0 16px; overflow: hidden; }
+    .op-avanzado summary { cursor: pointer; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #565f70; background: #f7f8fa; list-style: none; user-select: none; }
     .op-avanzado summary::-webkit-details-marker { display: none; }
-    .op-avanzado summary::before {
-      content: "▸ ";
-      display: inline-block;
-      margin-right: 4px;
-    }
+    .op-avanzado summary::before { content: "▸ "; display: inline-block; margin-right: 4px; }
     .op-avanzado[open] summary::before { content: "▾ "; }
     .op-avanzado[open] summary { border-bottom: 1px solid #eef0f3; }
     .op-avanzado > *:not(summary) { padding-left: 16px; padding-right: 16px; }
     .op-avanzado > .op-grid:last-of-type { padding-bottom: 16px; }
-
-    /* ============================================================
-       Selector de formato (Ticket / Factura) en el modal de detalle
-       ============================================================ */
-    .pdf-formato-select {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-right: auto;
-    }
-    .pdf-formato-select label {
-      font-size: 13px;
-      color: #565f70;
-      font-weight: 600;
-    }
-    .pdf-formato-select select {
-      padding: 7px 10px;
-      border: 1px solid #dde1e8;
-      border-radius: 6px;
-      font-size: 13px;
-      background: #fff;
-      color: #1c2230;
-    }
-    #factura-modal-overlay .modal-actions {
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    #factura-modal-overlay .modal-actions .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    #factura-modal-overlay .modal-actions .btn svg {
-      width: 15px;
-      height: 15px;
-      flex-shrink: 0;
-    }
-    .btn-download {
-      background: #dc2626;
-      border-color: #dc2626;
-      color: #fff;
-    }
-    .btn-download:hover {
-      background: #b91c1c;
-      border-color: #b91c1c;
-    }
-    .btn-gray {
-      background: #6b7280;
-      border-color: #6b7280;
-      color: #fff;
-    }
-    .btn-gray:hover {
-      background: #4b5563;
-      border-color: #4b5563;
-    }
-    .op-btn-cancelar {
-      background: #6b7280;
-      border-color: #6b7280;
-      color: #fff;
-    }
-    .op-btn-cancelar:hover {
-      background: #4b5563;
-      border-color: #4b5563;
-    }
+    .pdf-formato-select { display: flex; align-items: center; gap: 8px; margin-right: auto; }
+    .pdf-formato-select label { font-size: 13px; color: #565f70; font-weight: 600; }
+    .pdf-formato-select select { padding: 7px 10px; border: 1px solid #dde1e8; border-radius: 6px; font-size: 13px; background: #fff; color: #1c2230; }
+    #factura-modal-overlay .modal-actions { flex-wrap: wrap; gap: 10px; }
+    #factura-modal-overlay .modal-actions .btn { display: inline-flex; align-items: center; gap: 6px; }
+    #factura-modal-overlay .modal-actions .btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .btn-download { background: #dc2626; border-color: #dc2626; color: #fff; }
+    .btn-download:hover { background: #b91c1c; border-color: #b91c1c; }
+    .btn-gray { background: #6b7280; border-color: #6b7280; color: #fff; }
+    .btn-gray:hover { background: #4b5563; border-color: #4b5563; }
+    .op-btn-cancelar { background: #6b7280; border-color: #6b7280; color: #fff; }
+    .op-btn-cancelar:hover { background: #4b5563; border-color: #4b5563; }
   </style>
 </head>
 <body>
@@ -523,6 +174,17 @@
         <a class="nav-item" href="pagos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/></svg><span>Cuentas por pagar</span></a>
         <a class="nav-item" href="pagos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span>Formas de pago</span></a>
       </div>
+    </div>
+
+    <!-- Botón SALIR fijo en el HTML, justo debajo del último grupo
+         (Finanzas / Formas de pago) — su posición no depende de que
+         auth-check.js se haya actualizado/cacheado bien; ese script
+         solo le engancha el evento de clic. -->
+    <div class="sidebar-footer" id="sidebar-footer">
+      <button type="button" class="sidebar-logout-btn" id="sidebar-logout-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Salir
+      </button>
     </div>
   </aside>
 
@@ -631,9 +293,7 @@
       <div class="op-msg" id="op-msg"></div>
 
       <div class="op-columns">
-        <!-- COLUMNA IZQUIERDA: quién es, cómo paga, cuánto entregó -->
         <div class="op-col-left">
-          <!-- Cliente + CI/RUC (se completa solo al elegir el cliente) -->
           <div class="op-grid cols-2">
             <div class="op-field span-2">
               <label>Cliente</label>
@@ -650,7 +310,6 @@
             </div>
           </div>
 
-          <!-- Método de pago + Banco (condicional) + Estado -->
           <div class="op-grid cols-2">
             <div class="op-field">
               <label>Método de pago</label>
@@ -684,7 +343,6 @@
           </div>
         </div>
 
-        <!-- COLUMNA DERECHA: qué se está vendiendo -->
         <div class="op-col-right">
           <div class="op-section-label">
             <h4>Productos</h4>
@@ -724,9 +382,6 @@
         </div>
       </div>
 
-      <!-- COBRO RÁPIDO: Monto recibido / Vuelto — a todo el ancho del
-           modal, no metido en la columna angosta, para que se vea
-           realmente grande. Solo aparece con método de pago = Efectivo. -->
       <div class="op-cobro-rapido" id="op-cobro-rapido">
         <div class="op-cobro-campo">
           <label for="op-monto-recibido">Monto recibido</label>
@@ -738,9 +393,6 @@
         </div>
       </div>
 
-      <!-- Datos fiscales — colapsado por defecto. Casi nunca hace falta
-           tocarlos para una venta normal; siguen ahí para cuando sí
-           haga falta cargar timbrado, nota de crédito, etc. -->
       <details class="op-avanzado" style="display:none;">
         <summary>Datos fiscales (opcional)</summary>
 
@@ -830,7 +482,6 @@
   </div>
 </div>
 
-<!-- Modal de detalle de factura: ahora con selector de formato + Imprimir + Descargar PDF -->
 <div class="modal-overlay" id="factura-modal-overlay">
   <div class="modal-card factura-modal">
     <div class="modal-head">
@@ -881,11 +532,6 @@
   </div>
 </div>
 
-<!-- Modal de EDICIÓN simple: lo que se ve en la tabla — Cliente,
-     Productos, Método y Estado — MÁS el N.º de comprobante (antes solo
-     estaba disponible en el modal grande de "Nueva Operación"). El
-     Total se recalcula solo a partir de los productos, no se edita
-     directamente. -->
 <div class="modal-overlay" id="editar-factura-overlay">
   <div class="modal-card factura-modal">
     <div class="modal-head">
@@ -923,10 +569,6 @@
         </div>
       </div>
 
-      <!-- NUEVO: Banco + N.º de comprobante, igual que en "Nueva
-           Operación" — solo se muestran cuando el método de pago es
-           Transferencia. Se guardan/leen como factura.banco y
-           factura.numeroDoc, los mismos campos que ya usa el modal grande. -->
       <div class="op-field op-banco-wrap" id="edit-banco-wrap">
         <div class="op-grid cols-2" style="margin-bottom:14px;">
           <div class="op-field">
@@ -1003,9 +645,6 @@
   </div>
 </div>
 
-<!-- Aviso de N.º de comprobante repetido: se muestra en vez de guardar
-     cuando el número que se tipeó ya existe en otra factura de la misma
-     empresa. -->
 <div class="modal-overlay" id="comprobante-duplicado-overlay">
   <div class="confirm-card">
     <div class="confirm-icon">
@@ -1033,9 +672,6 @@
   </div>
 </div>
 
-<!-- ========================================================== -->
-<!-- FIREBASE (Auth + Firestore, igual que en dashboard.html)   -->
-<!-- ========================================================== -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -1059,7 +695,6 @@
   console.log("Firebase conectado correctamente (facturación)");
 </script>
 
-<!-- Acordeón del sidebar: mismo comportamiento que en el resto de las páginas. -->
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.nav-group[data-group]').forEach(function (group) {
@@ -1083,14 +718,11 @@
   });
 </script>
 
-<!-- jsPDF + AutoTable: generan el PDF del ticket y la factura en el navegador -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
-<!-- 🔒 Verificación de sesión + empresa/sucursal real (multiempresa). -->
 <script src="assets/js/auth-check.js"></script>
 
-<!-- Tu archivo JS (debe ir DESPUÉS de firebase y de auth-check.js) -->
 <script src="assets/js/facturacion.js"></script>
 </body>
 </html>

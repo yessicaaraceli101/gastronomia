@@ -256,6 +256,48 @@ img { max-width: 100%; }
 }
 
 /* ============================================================
+   FOOTER DEL SIDEBAR ("Salir")
+   ------------------------------------------------------------
+   Antes estos estilos solo existían inyectados por JavaScript
+   (auth-check.js creaba un <style> al vuelo). Ahora el botón
+   "Salir" también está escrito fijo en el HTML de cada página
+   (justo después del último grupo del menú), así que sus estilos
+   viven acá, en el CSS normal — no dependen de que ningún script
+   se haya cargado/actualizado bien.
+   ============================================================ */
+.sidebar-footer {
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+.sidebar-logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: none;
+  background: none;
+  color: #a9b1c7;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  width: 100%;
+  text-align: left;
+}
+.sidebar-logout-btn:hover {
+  background: rgba(220, 38, 38, 0.15);
+  color: #fca5a5;
+}
+.sidebar-logout-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
    TOPBAR
    ============================================================ */
 .topbar {

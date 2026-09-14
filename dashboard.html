@@ -109,6 +109,21 @@
         <a class="nav-item" href="pagos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span>Formas de pago</span></a>
       </div>
     </div>
+
+    <!-- Botón SALIR fijo en el HTML, justo debajo del último grupo
+         (Finanzas / Formas de pago) — puesto acá directamente, en vez de
+         dejar que auth-check.js lo cree por JS, para que su POSICIÓN no
+         dependa de que el script se haya actualizado/cacheado bien.
+         auth-check.js solo le engancha el evento de clic (ver
+         pintarPerfilEnSidebar) y, si en el futuro este bloque no
+         estuviera en alguna página vieja, lo sigue creando él como
+         respaldo. -->
+    <div class="sidebar-footer" id="sidebar-footer">
+      <button type="button" class="sidebar-logout-btn" id="sidebar-logout-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Salir
+      </button>
+    </div>
   </aside>
 
   <main class="main">

@@ -14,10 +14,10 @@
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-mark">G</div>
+      <div class="brand-mark">—</div>
       <div>
-        <div class="brand-name">Gastro</div>
-        <div class="brand-sub">Panel administrativo</div>
+        <div class="brand-name">—</div>
+        <div class="brand-sub">—</div>
       </div>
     </div>
 
@@ -66,6 +66,17 @@
         <a class="nav-item" href="pagos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/></svg><span>Cuentas por pagar</span></a>
         <a class="nav-item" href="pagos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span>Formas de pago</span></a>
       </div>
+    </div>
+
+    <!-- Botón SALIR fijo en el HTML, justo debajo del último grupo
+         (Finanzas / Formas de pago) — su posición no depende de que
+         auth-check.js se haya actualizado/cacheado bien; ese script
+         solo le engancha el evento de clic. -->
+    <div class="sidebar-footer" id="sidebar-footer">
+      <button type="button" class="sidebar-logout-btn" id="sidebar-logout-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Salir
+      </button>
     </div>
   </aside>
 
@@ -270,6 +281,11 @@
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.firestore();
+
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
+    console.warn('No se pudo fijar persistencia LOCAL de Firebase:', err);
+  });
+
   console.log("✅ Firebase conectado correctamente (caja)");
 </script>
 
