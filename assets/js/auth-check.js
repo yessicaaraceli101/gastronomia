@@ -250,7 +250,13 @@
   function asegurarMenuMobile() {
     if (document.getElementById('sidebar-hamburger-btn')) return;
 
-    const topbar = document.querySelector('.topbar');
+    // menu.html usa una estructura de topbar distinta (.menu-topbar en vez
+    // de .topbar) — buscamos cualquiera de las dos, y si ninguna existe,
+    // como último recurso el primer <h1> de la página (así el botón
+    // siempre aparece en algún lado, aunque una página futura tenga otro
+    // nombre de clase para su encabezado).
+    const topbar = document.querySelector('.topbar, .menu-topbar')
+      || document.querySelector('main h1')?.parentElement;
     if (!topbar) return;
 
     const btn = document.createElement('button');
@@ -321,7 +327,7 @@
       const style = document.createElement('style');
       style.id = 'auth-check-sidebar-footer-style';
       style.textContent = `
-        .sidebar-footer{margin-top:auto;padding-top:14px;
+        .sidebar-footer{margin-top:8px;padding-top:14px;
           border-top:1px solid rgba(255,255,255,0.08);}
         .sidebar-logout-btn{display:flex;align-items:center;gap:10px;
           padding:9px 10px;border-radius:8px;border:none;background:none;
@@ -338,7 +344,20 @@
       footer = document.createElement('div');
       footer.id = 'sidebar-footer';
       footer.className = 'sidebar-footer';
-      sidebar.appendChild(footer);
+      // Antes se hacía sidebar.appendChild(footer), que en teoría ya lo
+      // dejaba al final — pero para que quede SIEMPRE, de forma
+      // predecible, justo debajo del último grupo del menú (hoy
+      // "Formas de pago"), lo insertamos explícitamente después de él,
+      // en vez de confiar en el orden de inserción + margin-top:auto.
+      const gruposNav = sidebar.querySelectorAll('.nav-group');
+      const ultimoGrupo = gruposNav[gruposNav.length - 1];
+      if (ultimoGrupo && ultimoGrupo.nextSibling) {
+        sidebar.insertBefore(footer, ultimoGrupo.nextSibling);
+      } else if (ultimoGrupo) {
+        sidebar.appendChild(footer);
+      } else {
+        sidebar.appendChild(footer);
+      }
     }
 
     footer.innerHTML = `
