@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gastro — Pedidos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/dashboard.css" />
+  <link rel="stylesheet" href="assets/css/pedidos.css" />
+  <style>
+    .nuevo-pedido-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .nuevo-pedido-grid .full-width {
+      grid-column: 1 / -1;
+    }
+    .nuevo-pedido-grid label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 4px;
+    }
+    .nuevo-pedido-grid input, .nuevo-pedido-grid select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .items-list {
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 8px;
+      max-height: 150px;
+      overflow-y: auto;
+      background: #f9fafb;
+    }
+    .items-list .item-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 14px;
+    }
+    .items-list .item-row .item-remove {
+      color: #ef4444;
+      cursor: pointer;
+      font-weight: bold;
+      margin-left: 8px;
+    }
+    .add-item-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .add-item-row input {
+      flex: 1;
+      min-width: 80px;
+    }
+    .add-item-row input[type="text"] {
+      flex: 2;
+    }
+    .add-item-row button {
+      padding: 6px 14px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .add-item-row button:hover {
+      background: #2563eb;
+    }
+    .total-pedido {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1f2937;
+      text-align: right;
+      padding: 8px 0;
+      border-top: 2px solid #e5e7eb;
+      margin-top: 8px;
+    }
+    .btn-orange {
+      background: #f59e0b;
+      border-color: #f59e0b;
+      color: #fff;
+    }
+    .btn-orange:hover {
+      background: #d97706;
+      border-color: #d97706;
+    }
+    .btn-accion.editar {
+      color: #3b82f6;
+    }
+    .btn-accion.editar:hover {
+      color: #1d4ed8;
+    }
+
+    .combobox {
+      position: relative;
+      flex: 2;
+      min-width: 80px;
+    }
+    .combobox input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .combobox input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+    .combobox .options {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #d1d5db;
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 10;
+      display: none;
+    }
+    .combobox .options.show {
+      display: block;
+    }
+    .combobox .options .option-item {
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .combobox .options .option-item:hover {
+      background: #f3f4f6;
+    }
+    .combobox .options .option-item:last-child {
+      border-bottom: none;
+    }
+    .combobox .options .no-results {
+      padding: 8px 12px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">—</div>
+      <div>
+        <div class="brand-name">—</div>
+        <div class="brand-sub">—</div>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="general">
+      <div class="nav-label">GENERAL</div>
+      <div class="nav-group-items">
+        <a class="nav-item" href="dashboard.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg><span>Panel principal</span></a>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="operacion">
+      <button type="button" class="nav-group-header">
+        <span class="nav-label">OPERACIÓN</span>
+        <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="nav-group-items">
+        <a class="nav-item" href="mesas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="4" rx="1"/><path d="M5 11v9M19 11v9M2 20h20"/></svg><span>Mesas</span></a>
+        <a class="nav-item active" href="pedidos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v19l-3-2-3 2-3-2-3 2V2z"/><path d="M9 8h6M9 12h6"/></svg><span>Pedidos</span></a>
+        <a class="nav-item" href="menu.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v7a2 2 0 0 0 2 2 2 2 0 0 0 2-2V2M8 11v11M18 2c-2 2-2 6-2 8 0 1 .5 2 2 2s2-1 2-2c0-2 0-6-2-8zM18 13v9"/></svg><span>Menú</span></a>
+        <a class="nav-item" href="reservas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Reservas</span></a>
+        <a class="nav-item" href="clientes.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Clientes</span></a>
+        <a class="nav-item" href="proveedores.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Proveedores</span></a>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="administracion">
+      <button type="button" class="nav-group-header">
+        <span class="nav-label">ADMINISTRACIÓN</span>
+        <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="nav-group-items">
+        <a class="nav-item" href="facturacion.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg><span>Facturación</span></a>
+        <a class="nav-item" href="inventario.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8L12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg><span>Inventario</span></a>
+        <a class="nav-item" href="reportes.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg><span>Reportes</span></a>
+        <a class="nav-item" href="usuarios.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Usuarios</span></a>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="finanzas">
+      <button type="button" class="nav-group-header">
+        <span class="nav-label">FINANZAS</span>
+        <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="nav-group-items">
+        <a class="nav-item" href="caja.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7H5a2 2 0 0 1-2-2 2 2 0 0 1 2-2h13v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-8H5"/><circle cx="17" cy="15" r="1"/></svg><span>Caja</span></a>
+        <a class="nav-item" href="cuentas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/></svg><span>Cuentas por pagar</span></a>
+        <a class="nav-item" href="pagos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span>Formas de pago</span></a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Pedidos</h1>
+        <div class="date" id="branch-date">Gestión de pedidos</div>
+      </div>
+      <div class="topbar-right">
+        <div class="company-switch" id="company-switch">
+          <button type="button" class="company-switch-btn" id="company-switch-btn">
+            <div class="co-mark">–</div>
+            <div class="co-text">
+              <div class="co-name">—</div>
+              <div class="co-branch">—</div>
+            </div>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="company-menu">
+            <div id="company-menu-list"></div>
+            <div class="company-menu-footer">
+              <button type="button" class="company-add" id="company-add-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                Agregar empresa
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="seg" id="currency-toggle">
+          <button class="active" data-currency="Gs">Gs</button>
+          <button data-currency="US$">US$</button>
+          <button data-currency="R$">R$</button>
+        </div>
+
+        <div class="user-chip">
+          <div class="avatar" id="user-avatar">—</div>
+          <div>
+            <div class="u-name" id="user-name">—</div>
+            <div class="u-role" id="user-role">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Todos los pedidos</h2>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-orange" id="new-pedido-btn">+ Nuevo pedido</button>
+          </div>
+        </div>
+        <div class="panel-toolbar">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input type="text" id="pedido-search" placeholder="Buscar por código, cliente o mesa..." />
+          </div>
+          <div class="filters">
+            <select id="filter-estado">
+              <option value="all">Todos los estados</option>
+              <option value="Pending">Pendiente</option>
+              <option value="Preparing">Preparando</option>
+              <option value="Out for delivery">En camino</option>
+              <option value="Delivered">Entregado</option>
+              <option value="Canceled">Cancelado</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table id="pedidos-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Cliente</th>
+                <th>Teléfono</th>
+                <th>Items</th>
+                <th>Tipo</th>
+                <th>Hora</th>
+                <th>Total</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="pedidos-body">
+              <tr><td colspan="9" class="empty-state">Cargando pedidos...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span id="page-label">Página 1 de 1</span>
+          <span class="pagination-nav">
+            <button id="prev-page" disabled>&lt;</button>
+            <button id="next-page" disabled>&gt;</button>
+          </span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="nuevo-pedido-modal">
+  <div class="modal-card" style="max-width: 700px; width: 95%;">
+    <div class="modal-head">
+      <h3>Nuevo pedido</h3>
+      <button class="modal-close" id="nuevo-pedido-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="nuevo-pedido-form">
+        <div class="nuevo-pedido-grid">
+          <div>
+            <label for="np-cliente">Cliente *</label>
+            <input type="text" id="np-cliente" placeholder="Nombre del cliente" required>
+          </div>
+          <div>
+            <label for="np-telefono">Teléfono</label>
+            <input type="text" id="np-telefono" placeholder="Ej: 0981 234 567">
+          </div>
+          <div>
+            <label for="np-tipo">Tipo</label>
+            <select id="np-tipo">
+              <option value="pickup">Retiro</option>
+              <option value="delivery">Delivery</option>
+            </select>
+          </div>
+          <div>
+            <label for="np-estado">Estado</label>
+            <select id="np-estado">
+              <option value="Pending">Pendiente</option>
+              <option value="Preparing">Preparando</option>
+              <option value="Out for delivery">En camino</option>
+              <option value="Delivered">Entregado</option>
+              <option value="Canceled">Cancelado</option>
+            </select>
+          </div>
+          <div>
+            <label for="np-fecha">Fecha</label>
+            <input type="date" id="np-fecha">
+          </div>
+          <div>
+            <label for="np-hora">Hora</label>
+            <input type="time" id="np-hora">
+          </div>
+        </div>
+
+        <div class="full-width" style="margin-bottom: 8px;">
+          <label style="font-weight:600; display:block; margin-bottom:4px;">Items</label>
+          <div class="items-list" id="np-items-list">
+            <div style="color: #9ca3af; text-align:center; padding:8px;">Sin items agregados</div>
+          </div>
+          <div class="add-item-row">
+            <div class="combobox" id="np-combobox">
+              <input type="text" id="np-item-nombre" placeholder="Buscar producto del menú...">
+              <div class="options" id="np-options-list"></div>
+            </div>
+            <input type="number" id="np-item-cantidad" placeholder="Cant." value="1" style="flex:0.5; min-width:60px;">
+            <input type="text" id="np-item-precio" placeholder="Precio unit. (ej. 54.000)" style="flex:0.8; min-width:80px;">
+            <button type="button" id="np-add-item-btn">+ Agregar</button>
+          </div>
+        </div>
+
+        <div class="total-pedido">
+          Total: <span id="np-total">Gs. 0</span>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 16px;">
+          <button type="button" class="btn" id="nuevo-pedido-cancelar">Cancelar</button>
+          <button type="submit" class="btn btn-success" id="nuevo-pedido-guardar">Guardar pedido</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editar-pedido-modal">
+  <div class="modal-card" style="max-width: 700px; width: 95%;">
+    <div class="modal-head">
+      <h3>Editar pedido</h3>
+      <button class="modal-close" id="editar-pedido-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="editar-pedido-form">
+        <input type="hidden" id="ep-pedido-id">
+        <div class="nuevo-pedido-grid">
+          <div>
+            <label for="ep-cliente">Cliente *</label>
+            <input type="text" id="ep-cliente" placeholder="Nombre del cliente" required>
+          </div>
+          <div>
+            <label for="ep-telefono">Teléfono</label>
+            <input type="text" id="ep-telefono" placeholder="Ej: 0981 234 567">
+          </div>
+          <div>
+            <label for="ep-tipo">Tipo</label>
+            <select id="ep-tipo">
+              <option value="pickup">Retiro</option>
+              <option value="delivery">Delivery</option>
+            </select>
+          </div>
+          <div>
+            <label for="ep-estado">Estado</label>
+            <select id="ep-estado">
+              <option value="Pending">Pendiente</option>
+              <option value="Preparing">Preparando</option>
+              <option value="Out for delivery">En camino</option>
+              <option value="Delivered">Entregado</option>
+              <option value="Canceled">Cancelado</option>
+            </select>
+          </div>
+          <div>
+            <label for="ep-fecha">Fecha</label>
+            <input type="date" id="ep-fecha">
+          </div>
+          <div>
+            <label for="ep-hora">Hora</label>
+            <input type="time" id="ep-hora">
+          </div>
+        </div>
+
+        <div class="full-width" style="margin-bottom: 8px;">
+          <label style="font-weight:600; display:block; margin-bottom:4px;">Items</label>
+          <div class="items-list" id="ep-items-list">
+            <div style="color: #9ca3af; text-align:center; padding:8px;">Sin items agregados</div>
+          </div>
+          <div class="add-item-row">
+            <div class="combobox" id="ep-combobox">
+              <input type="text" id="ep-item-nombre" placeholder="Buscar producto del menú...">
+              <div class="options" id="ep-options-list"></div>
+            </div>
+            <input type="number" id="ep-item-cantidad" placeholder="Cant." value="1" style="flex:0.5; min-width:60px;">
+            <input type="text" id="ep-item-precio" placeholder="Precio unit. (ej. 54.000)" style="flex:0.8; min-width:80px;">
+            <button type="button" id="ep-add-item-btn">+ Agregar</button>
+          </div>
+        </div>
+
+        <div class="total-pedido">
+          Total: <span id="ep-total">Gs. 0</span>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 16px;">
+          <button type="button" class="btn" id="editar-pedido-cancelar">Cancelar</button>
+          <button type="submit" class="btn btn-success" id="editar-pedido-guardar">Actualizar pedido</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="estado-modal-overlay">
+  <div class="modal-card estado-modal">
+    <div class="modal-head">
+      <h3>Cambiar estado</h3>
+      <button class="modal-close" id="estado-modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="estado-modal-sub">Pedido <strong id="estado-modal-id">—</strong></p>
+      <div class="estado-options" id="estado-options">
+        <button type="button" class="estado-option" data-estado="Pending">
+          <span class="estado-dot pending"></span> Pendiente
+        </button>
+        <button type="button" class="estado-option" data-estado="Preparing">
+          <span class="estado-dot preparing"></span> Preparando
+        </button>
+        <button type="button" class="estado-option" data-estado="Out for delivery">
+          <span class="estado-dot out"></span> En camino
+        </button>
+        <button type="button" class="estado-option" data-estado="Delivered">
+          <span class="estado-dot delivered"></span> Entregado
+        </button>
+        <button type="button" class="estado-option" data-estado="Canceled">
+          <span class="estado-dot canceled"></span> Cancelado
+        </button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="estado-modal-cancelar">Cancelar</button>
+      <button class="btn btn-success" id="estado-modal-guardar">Guardar cambio</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="detalle-modal-overlay">
+  <div class="modal-card detalle-modal">
+    <div class="modal-head">
+      <h3 id="detalle-modal-title">Pedido #</h3>
+      <button class="modal-close" id="detalle-modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="detalle-info">
+        <div class="detalle-row">
+          <span><strong>Cliente:</strong> <span id="detalle-cliente">—</span></span>
+          <span><strong>Teléfono:</strong> <span id="detalle-telefono">—</span></span>
+        </div>
+        <div class="detalle-row">
+          <span><strong>Fecha:</strong> <span id="detalle-fecha">—</span></span>
+          <span><strong>Estado:</strong> <span id="detalle-estado">—</span></span>
+        </div>
+        <div class="detalle-row">
+          <span><strong>Tipo:</strong> <span id="detalle-tipo">—</span></span>
+          <span><strong>Dirección:</strong> <span id="detalle-direccion">—</span></span>
+        </div>
+        <hr />
+        <div class="detalle-items">
+          <h4>Productos</h4>
+          <ul id="detalle-items-list"></ul>
+        </div>
+        <div class="detalle-totales">
+          <div><span>Subtotal</span><span id="detalle-subtotal">—</span></div>
+          <div><span>Delivery</span><span id="detalle-delivery">—</span></div>
+          <div class="total"><span>Total</span><span id="detalle-total">—</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="detalle-modal-cerrar">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="registrar-modal-overlay">
+  <div class="modal-card registrar-modal">
+    <div class="modal-head">
+      <h3>Registrar Pedido</h3>
+      <button class="modal-close" id="registrar-modal-close">&times;</button>
+    </div>
+    <div class="modal-body" id="registrar-modal-body">
+      <div id="registrar-pedido-info"></div>
+    </div>
+    <div class="modal-actions" id="registrar-modal-actions">
+      <button class="btn" id="registrar-modal-cancelar">Cancelar</button>
+      <button class="btn btn-success" id="registrar-modal-guardar">Registrar pedido</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAttBvD83gI770HibucrqDVzMuqLcYONNY",
+    authDomain: "gastro-7c5ad.firebaseapp.com",
+    projectId: "gastro-7c5ad",
+    storageBucket: "gastro-7c5ad.firebasestorage.app",
+    messagingSenderId: "990505475007",
+    appId: "1:990505475007:web:09a5066610de6c7e81df0a"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
+    console.warn('No se pudo fijar persistencia LOCAL de Firebase:', err);
+  });
+
+  console.log("Firebase conectado correctamente (pedidos)");
+</script>
+
+<!-- 🔒 Sesión + empresa/sucursal real (multiempresa) -->
+<script src="assets/js/auth-check.js"></script>
+
+<!-- Acordeón del sidebar -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.nav-group[data-group]').forEach(function (group) {
+      const header = group.querySelector('.nav-group-header');
+      const items = group.querySelector('.nav-group-items');
+      if (!header || !items) return;
+
+      const key = group.getAttribute('data-group');
+      let collapsed = localStorage.getItem('sidebar_' + key) === 'true';
+      if (collapsed) {
+        group.classList.add('collapsed');
+        items.style.maxHeight = '0px';
+      }
+
+      header.addEventListener('click', function () {
+        const isCollapsed = group.classList.toggle('collapsed');
+        items.style.maxHeight = isCollapsed ? '0px' : items.scrollHeight + 'px';
+        localStorage.setItem('sidebar_' + key, isCollapsed);
+      });
+    });
+  });
+</script>
+
+<script src="assets/js/pedidos.js"></script>
+</body>
+</html>

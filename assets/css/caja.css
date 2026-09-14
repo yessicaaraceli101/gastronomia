@@ -1,0 +1,248 @@
+/* ============================================================
+   ESTILOS EXCLUSIVOS PARA CAJA
+   ============================================================ */
+
+/* --- BOTÓN DESCARGAR INFORME PDF --- */
+.caja-topbar-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+.btn-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #3557ff;
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-pdf:hover { background: #2c47dd; }
+.btn-pdf svg { width: 16px; height: 16px; }
+
+/* --- GRID DE DOS COLUMNAS --- */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* --- TARJETAS DE EFECTIVO Y TRANSFERENCIA --- */
+.caja-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.caja-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.caja-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #3557ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.caja-card-icon svg { width: 22px; height: 22px; }
+
+.caja-card-title h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+}
+.caja-card-title p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.caja-fecha-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.caja-fecha-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+}
+.caja-fecha-field input[type="date"] {
+  padding: 9px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #1f2937;
+  background: #fff;
+}
+.caja-fecha-field input[type="date"]:focus {
+  outline: none;
+  border-color: #3557ff;
+  box-shadow: 0 0 0 3px rgba(53, 87, 255, 0.12);
+}
+
+/* --- BOTONES DE ACCIÓN --- */
+.caja-botones {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.btn-abrir-caja,
+.btn-cerrar-caja {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-abrir-caja svg,
+.btn-cerrar-caja svg { width: 15px; height: 15px; }
+
+.btn-abrir-caja {
+  background: #16a34a;
+  color: #fff;
+}
+.btn-abrir-caja:hover { background: #15803d; }
+.btn-abrir-caja:disabled {
+  background: #bbf7d0;
+  cursor: not-allowed;
+}
+
+.btn-cerrar-caja {
+  background: #dc2626;
+  color: #fff;
+}
+.btn-cerrar-caja:hover { background: #b91c1c; }
+.btn-cerrar-caja:disabled {
+  background: #fecaca;
+  cursor: not-allowed;
+}
+
+.caja-status-text {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+}
+.caja-status-text.abierta { color: #16a34a; }
+.caja-status-text.cerrada { color: #dc2626; }
+
+/* --- PANELES DE RECAUDADO (DÍA / MES) --- */
+.recaudado-panel {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 20px;
+}
+
+.recaudado-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.recaudado-header h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.badge-periodo {
+  background: #eef2ff;
+  color: #3557ff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 4px 14px;
+  border-radius: 20px;
+}
+
+.recaudado-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.recaudado-sub-card {
+  background: #f9fafb;
+  border: 1px solid #eef0f3;
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.recaudado-sub-card h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #374151;
+}
+
+.recaudado-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+  font-size: 14px;
+  border-bottom: 1px dashed #e5e7eb;
+}
+.recaudado-fila:last-child { border-bottom: none; }
+.recaudado-fila .label { color: #6b7280; }
+.recaudado-fila .valor { font-weight: 700; }
+.recaudado-fila .valor.ingreso { color: #16a34a; }
+.recaudado-fila .valor.egreso { color: #dc2626; }
+.recaudado-fila .valor.saldo { color: #2563eb; }
+
+.total-sobrante-bar {
+  margin-top: 16px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: #1e3a8a;
+}
+.total-sobrante-bar strong {
+  font-size: 16px;
+  color: #1d4ed8;
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 992px) {
+  .two-col { grid-template-columns: 1fr; }
+  .recaudado-grid { grid-template-columns: 1fr; }
+}

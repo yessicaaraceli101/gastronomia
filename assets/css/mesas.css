@@ -1,0 +1,397 @@
+/* ==========================================================================
+   Gastro — Mapa de mesas (mesas.css)
+   Se apoya en dashboard.css para layout base (sidebar, topbar, tokens).
+   Regla de esta pantalla: ningun icono ni tarjeta lleva un color de fondo
+   solido. El estado de una mesa se lee por el borde izquierdo y un punto
+   de estado, nunca por un bloque de color relleno.
+   ========================================================================== */
+
+:root{
+  --free:#16a34a;
+  --occupied:#b91c1c;
+  --reserved:#b45309;
+}
+
+/* ---------------------------- Barra de estado ---------------------------- */
+.legend{
+  display:flex;
+  align-items:center;
+  gap:18px;
+  font-size:12.5px;
+  color:var(--text-soft);
+}
+.legend span{ display:flex; align-items:center; gap:7px; }
+.legend i{
+  width:9px; height:9px;
+  border-radius:50%;
+  background:transparent;
+  border:2px solid currentColor;
+  display:inline-block;
+}
+.legend .dot-free{ color:var(--free); }
+.legend .dot-occupied{ color:var(--occupied); }
+.legend .dot-reserved{ color:var(--reserved); }
+.legend .legend-count{
+  margin-left:2px;
+  font-weight:600;
+  color:var(--text);
+}
+
+/* ---------------------------- Filtros ---------------------------- */
+.filter-bar{
+  display:flex;
+  gap:6px;
+}
+.filter-tab{
+    border:none;
+    background:var(--bg);
+    color:var(--text-soft);
+    font-size:13px;
+    font-weight:600;
+    padding:9px 18px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:.2s;
+}
+.filter-tab:hover{
+    background:var(--border);
+    color:var(--text);
+}
+.filter-tab.active{
+    background:var(--sidebar-bg);
+    color:#fff;
+}
+
+/* ---------------------------- Toolbar de mesas ---------------------------- */
+.tables-toolbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:18px;
+
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+
+    padding:16px 20px;
+    margin-bottom:20px;
+}
+
+/* ---------------------------- Grid de mesas ---------------------------- */
+.grid-cards{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+    gap:18px;
+}
+
+.table-card{
+    background:var(--panel);
+    border:none;
+    border-radius:var(--radius);
+    padding:18px;
+    text-align:left;
+    cursor:pointer;
+
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+
+    box-shadow:
+        0 2px 8px rgba(0,0,0,.05),
+        0 10px 30px rgba(0,0,0,.08);
+
+    transition:.25s;
+}
+
+.table-card:hover{
+    transform:translateY(-6px);
+    box-shadow:
+        0 6px 18px rgba(0,0,0,.08),
+        0 18px 40px rgba(0,0,0,.12);
+}
+
+.t-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.t-icon{ color:var(--text-soft); }
+.t-icon svg{ width:24px; height:24px; }
+
+.t-state-dot{
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    color:var(--text-soft);
+}
+.table-card.free .t-state-dot{ color:var(--free); }
+.table-card.occupied .t-state-dot{ color:var(--occupied); }
+.table-card.reserved .t-state-dot{ color:var(--reserved); }
+
+.t-num{
+    font-size:22px;
+    font-weight:700;
+    color:var(--text);
+}
+
+.t-meta{
+    color:var(--text-soft);
+    font-size:13px;
+    margin-top:4px;
+}
+
+/* ---------------------------- Modal detalle de mesa ---------------------------- */
+.modal-overlay{
+  position:fixed; inset:0;
+  background:rgba(20,22,20,.45);
+  display:none;
+  align-items:center; justify-content:center;
+  z-index:100;
+  padding:20px;
+}
+.modal-overlay.open{ display:flex; }
+.modal-card{
+  width:100%; max-width:660px;
+  background:var(--panel);
+  border-radius:var(--radius);
+  border:1px solid var(--border);
+  padding:22px 24px;
+  box-shadow:0 24px 60px -20px rgba(0,0,0,.35);
+}
+.modal-head{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:4px;
+}
+.modal-head h3{
+  font-size:19px;
+  font-weight:600;
+}
+.modal-close{
+  border:none; background:transparent;
+  color:var(--text-soft); cursor:pointer;
+  width:28px; height:28px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:var(--radius-sm);
+}
+.modal-close:hover{ background:var(--bg); }
+.modal-close svg{ width:16px; height:16px; }
+.modal-sub{ font-size:12.5px; color:var(--text-soft); margin-bottom:16px; }
+
+.modal-body{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:22px;
+  align-items:start;
+}
+.modal-col{ display:flex; flex-direction:column; }
+
+.detail-block{
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  background:var(--bg);
+  padding:14px 16px;
+  margin-bottom:16px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.detail-row{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+}
+.detail-row svg{
+  width:16px; height:16px;
+  color:var(--text-soft);
+  margin-top:1px;
+  flex-shrink:0;
+}
+.detail-row .detail-label{
+  font-size:10.5px;
+  font-weight:600;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  color:var(--text-soft);
+  margin-bottom:1px;
+}
+.detail-row .detail-value{
+  font-size:13.5px;
+  color:var(--text);
+  font-weight:500;
+}
+.detail-empty{
+  font-size:12.5px;
+  color:var(--text-soft);
+  font-style:italic;
+}
+
+.modal-field{ margin-bottom:12px; }
+.modal-field label{
+  display:block;
+  font-size:11px; font-weight:600; letter-spacing:.03em; text-transform:uppercase;
+  color:var(--text-soft);
+  margin-bottom:6px;
+}
+.modal-field input{
+  width:100%;
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:9px 11px;
+  font-size:13px;
+  color:var(--text);
+  background:var(--bg);
+}
+.modal-field input:focus{ outline:none; border-color:var(--accent); background:var(--panel); }
+
+.status-options{ display:flex; gap:8px; margin-top:4px; }
+.status-option{
+  flex:1;
+  border:1px solid var(--border);
+  background:var(--panel);
+  border-radius:var(--radius-sm);
+  padding:9px 6px;
+  font-size:11.5px; font-weight:600;
+  color:var(--text-soft);
+  cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+  transition:border-color .15s ease, color .15s ease;
+}
+.status-option i{
+  width:8px; height:8px; border-radius:50%;
+  border:2px solid currentColor;
+}
+.status-option[data-status="free"]{ color:var(--free); }
+.status-option[data-status="occupied"]{ color:var(--occupied); }
+.status-option[data-status="reserved"]{ color:var(--reserved); }
+.status-option.active{
+  border-color:currentColor;
+  background:var(--bg);
+}
+
+.modal-actions{
+  display:flex; justify-content:flex-end; gap:10px;
+  margin-top:18px;
+  grid-column:1 / -1;
+}
+
+/* ---------------------------- Modal de confirmacion ---------------------------- */
+.confirm-card{
+  width:100%; max-width:340px;
+  background:var(--panel);
+  border-radius:var(--radius);
+  border:1px solid var(--border);
+  padding:22px;
+  box-shadow:0 24px 60px -20px rgba(0,0,0,.35);
+  text-align:center;
+}
+.confirm-icon{
+  width:44px; height:44px;
+  border-radius:50%;
+  border:2px solid var(--occupied);
+  color:var(--occupied);
+  display:flex; align-items:center; justify-content:center;
+  margin:0 auto 14px;
+}
+.confirm-icon svg{ width:22px; height:22px; }
+.confirm-card h3{
+  margin:0 0 6px;
+  font-size:17px;
+  font-weight:600;
+}
+.confirm-card p{
+  margin:0 0 20px;
+  font-size:13px;
+  color:var(--text-soft);
+  line-height:1.5;
+}
+.confirm-actions{
+  display:flex; gap:10px;
+}
+.confirm-actions .btn{ flex:1; }
+
+.empty-state{
+  grid-column:1 / -1;
+  padding:44px 20px;
+  text-align:center;
+  color:var(--text-soft);
+  font-size:13px;
+}
+
+@media (max-width: 560px){
+  .grid-cards{ grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); }
+  .legend{ gap:12px; }
+  .modal-card{ padding:20px; }
+  .modal-body{ grid-template-columns:1fr; gap:4px; }
+}
+
+/* ===========================
+   Fondo del salon
+   Foto del restaurante en assets/img/restaurant.jpg
+=========================== */
+
+.panel-mesas{
+    position:relative;
+    overflow:hidden;
+    padding:24px;
+    background: url("../img/restaurant.jpg") center center / cover no-repeat;
+    min-height:700px;
+}
+
+.panel-mesas::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    backdrop-filter:blur(2px);
+}
+
+.panel-mesas > *{
+    position:relative;
+    z-index:2;
+}
+/* ---------------------------- Tabla: alineación y espaciado ---------------------------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+table th,
+table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-soft);
+  font-weight: 600;
+}
+table tbody tr:hover {
+  background: var(--bg);
+}
+
+/* ---------------------------- Paginación ---------------------------- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  font-size: 12.5px;
+  color: var(--text-soft);
+}
+.pagination button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  margin-left: 6px;
+}
+.pagination button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}

@@ -1,0 +1,724 @@
+/* ==========================================================================
+   Gastro — Facturación (facturacion.css)
+   ========================================================================== */
+:root {
+  --line: var(--border, #e5e7eb);
+  --paper: var(--bg, #f6f5f2);
+  --surface: var(--panel, #ffffff);
+  --ink: var(--text, #1f2937);
+  --muted: var(--text-soft, #6b7280);
+  --brand: var(--accent, #f59e0b);
+  --brand-2: var(--accent-dark, #b45309);
+  --brand-2-soft: #fff3e0;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --pagada: #16a34a;
+  --pagada-soft: #dcfce7;
+  --pendiente: #b45309;
+  --pendiente-soft: #fef3c7;
+  --anulada: #dc2626;
+  --anulada-soft: #fee2e2;
+}
+
+/* ---------------------------- Botón "Nueva Operación" / refresh ---------------------------- */
+.panel-head .btn {
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.panel-head .btn:hover {
+  background: var(--paper);
+}
+
+/* ---------------------------- Tabla ---------------------------- */
+.table-wrapper {
+  overflow-x: auto;
+  padding: 0;
+}
+#facturas-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+#facturas-table th {
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+#facturas-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+#facturas-table tbody tr:last-child td {
+  border-bottom: none;
+}
+#facturas-table tbody tr:hover {
+  background: rgba(22, 33, 29, 0.02);
+}
+#facturas-table .id {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--brand);
+}
+.empty-state {
+  padding: 44px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Badge de estado en la tabla (Pagada / Pendiente / Anulada) */
+#facturas-table .estado {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+#facturas-table .estado.Pagada {
+  background: var(--pagada-soft);
+  color: var(--pagada);
+}
+#facturas-table .estado.Pendiente {
+  background: var(--pendiente-soft);
+  color: var(--pendiente);
+}
+#facturas-table .estado.Anulada {
+  background: var(--anulada-soft);
+  color: var(--anulada);
+}
+
+/* Acciones en tabla */
+#facturas-table td:last-child {
+  min-width: 110px;
+  white-space: nowrap;
+}
+.btn-accion {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-accion:hover {
+  background: var(--paper);
+  color: var(--brand);
+}
+.btn-accion svg {
+  vertical-align: middle;
+}
+
+/* ---------------------------- Paginación ---------------------------- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  font-size: 12.5px;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+}
+.pagination button {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  margin-left: 6px;
+  color: var(--muted);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.pagination button svg {
+  width: 14px;
+  height: 14px;
+}
+.pagination button:hover:not(:disabled) {
+  background: var(--paper);
+  color: var(--brand);
+}
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   MODALES (factura / estado / confirmación)
+   ============================================================ */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 20, 0.5);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+.modal-overlay.open {
+  display: flex;
+}
+.modal-card {
+  background: var(--surface);
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  overflow-y: auto;
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+  animation: modal-in 0.15s ease-out;
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.modal-head h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.modal-close {
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.modal-close:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+.modal-body {
+  padding: 18px 20px;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+}
+
+/* ---------------------------- Modal de factura (detalle) ---------------------------- */
+.factura-modal {
+  max-width: 640px;
+}
+.factura-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  font-size: 13.5px;
+  margin-bottom: 16px;
+}
+.factura-header strong {
+  color: var(--muted);
+  font-weight: 600;
+  margin-right: 4px;
+}
+.factura-items-wrap {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+table.factura-items {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+table.factura-items thead th {
+  text-align: left;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 9px 12px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+table.factura-items td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+table.factura-items tr:last-child td {
+  border-bottom: none;
+}
+.factura-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.factura-totals div {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+.factura-totals .total {
+  font-weight: 700;
+  font-size: 17px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  margin-top: 4px;
+  color: var(--ink);
+}
+
+/* ---------------------------- Modal de estado ---------------------------- */
+.estado-modal {
+  max-width: 420px;
+}
+.estado-modal-sub {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.estado-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.estado-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.estado-option:hover {
+  border-color: var(--brand);
+}
+.estado-option.selected {
+  border-color: var(--brand);
+  background: var(--brand-2-soft);
+}
+.estado-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.estado-dot.pagada { background: var(--pagada); }
+.estado-dot.pendiente { background: var(--pendiente); }
+.estado-dot.anulada { background: var(--anulada); }
+
+/* ---------------------------- Modal de confirmación ---------------------------- */
+.confirm-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--surface);
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  padding: 24px;
+  box-shadow: 0 24px 60px -20px rgba(22, 33, 29, 0.35);
+  text-align: center;
+}
+.confirm-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--anulada);
+  color: var(--anulada);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+}
+.confirm-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.confirm-card h3 {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.confirm-card p {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+.confirm-actions .btn {
+  flex: 1;
+  justify-content: center;
+}
+
+/* ---------------------------- Botones genéricos usados en modales ---------------------------- */
+.btn {
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn:hover {
+  background: var(--paper);
+}
+.btn-danger {
+  border-color: var(--anulada);
+  color: var(--anulada);
+}
+.btn-danger:hover {
+  background: var(--anulada-soft);
+}
+.btn-success {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #fff;
+}
+.btn-success:hover {
+  background: #16a34a;
+  border-color: #16a34a;
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+  .modal-card {
+    max-width: 100%;
+  }
+  .factura-header {
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+/* ==========================================================================
+   MODAL "NUEVA OPERACIÓN DE FACTURACIÓN"
+   ========================================================================== */
+:root{
+  --op-bg:        var(--card, #ffffff);
+  --op-bg-soft:   var(--bg-soft, #f2f4f8);
+  --op-border:    var(--border, #dbe0e8);
+  --op-text:      var(--text, #1a2233);
+  --op-text-dim:  var(--text-dim, #626d80);
+  --op-primary:   #16223d;
+  --op-primary-dk:#0c1526;
+  --op-primary-soft:#1f2f52;
+  --op-accent:    #c9973f;
+  --op-danger:    #b3432b;
+  --op-orange:    #e2792f;
+  --op-orange-dk: #c4611f;
+  --op-radius:    10px;
+  --op-mono:      'IBM Plex Mono', 'SFMono-Regular', monospace;
+  --op-sans:      'Inter', sans-serif;
+}
+
+.btn-nueva-operacion{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-family:var(--op-sans);
+  font-weight:600;
+  font-size:13.5px;
+  padding:9px 16px;
+  border-radius:8px;
+  border:1px solid var(--op-orange-dk);
+  background:var(--op-orange);
+  color:#fff;
+  cursor:pointer;
+  transition:background .15s ease, transform .1s ease;
+}
+.btn-nueva-operacion:hover{ background:var(--op-orange-dk); }
+.btn-nueva-operacion:active{ transform:translateY(1px); }
+.btn-nueva-operacion svg{ width:15px; height:15px; }
+
+.op-overlay{
+  position:fixed; inset:0;
+  background:rgba(20,24,20,.5);
+  display:none;
+  align-items:flex-start;
+  justify-content:center;
+  padding:3vh 16px;
+  overflow-y:auto;
+  z-index:200;
+}
+.op-overlay.open{ display:flex; }
+
+.op-card{
+  width:100%;
+  max-width:980px;
+  background:var(--op-bg);
+  border:1px solid var(--op-border);
+  border-radius:var(--op-radius);
+  box-shadow:0 24px 60px -12px rgba(0,0,0,.35);
+  font-family:var(--op-sans);
+  color:var(--op-text);
+  overflow:hidden;
+}
+
+.op-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:16px 22px;
+  background:var(--op-primary);
+  color:#fff;
+}
+.op-head-title{ display:flex; flex-direction:column; gap:2px; }
+.op-head-title .eyebrow{
+  font-size:10.5px; letter-spacing:.09em; text-transform:uppercase;
+  opacity:.75; font-weight:600;
+}
+.op-head-title h3{ margin:0; font-size:18px; font-weight:700; }
+.op-close{
+  background:rgba(255,255,255,.12);
+  border:none; color:#fff; width:30px; height:30px;
+  border-radius:8px; font-size:18px; line-height:1; cursor:pointer;
+}
+.op-close:hover{ background:rgba(255,255,255,.22); }
+
+.op-body{ padding:20px 22px 6px; max-height:72vh; overflow-y:auto; }
+
+.op-grid{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:14px 16px;
+  margin-bottom:16px;
+}
+.op-grid.cols-3{ grid-template-columns:repeat(3, 1fr); }
+.op-grid.cols-2{ grid-template-columns:repeat(2, 1fr); }
+
+.op-field{ display:flex; flex-direction:column; gap:5px; min-width:0; }
+.op-field.span-2{ grid-column:span 2; }
+.op-field.span-4{ grid-column:1 / -1; }
+
+.op-field label{
+  font-size:11.5px; font-weight:600; color:var(--op-text-dim);
+  text-transform:uppercase; letter-spacing:.03em;
+}
+.op-field .hint{ font-size:11px; color:var(--op-text-dim); font-weight:400; text-transform:none; }
+
+.op-field input,
+.op-field select{
+  width:100%;
+  font-family:var(--op-sans);
+  font-size:13.5px;
+  padding:8px 10px;
+  border-radius:7px;
+  border:1px solid var(--op-border);
+  background:var(--op-bg-soft);
+  color:var(--op-text);
+}
+.op-field input:focus,
+.op-field select:focus{
+  outline:none;
+  border-color:var(--op-primary);
+  background:#fff;
+  box-shadow:0 0 0 3px rgba(47,111,79,.12);
+}
+.op-field input[readonly]{ color:var(--op-text-dim); background:#eef0ea; }
+.op-field input.mono, .op-field .code-display{ font-family:var(--op-mono); }
+
+.op-field-inline{ display:flex; gap:8px; }
+.op-field-inline .op-field{ flex:1; }
+.op-field-inline .op-field.narrow{ flex:0 0 90px; }
+
+.op-tc-btn{
+  align-self:flex-end;
+  white-space:nowrap;
+  font-family:var(--op-mono);
+  font-size:12.5px; font-weight:600;
+  padding:8px 10px;
+  border-radius:7px;
+  border:1px solid var(--op-border);
+  background:var(--op-bg-soft);
+  cursor:pointer;
+}
+.op-tc-btn:hover{ background:var(--op-bg); }
+
+.op-search-field{ position:relative; }
+.op-search-btn{
+  position:absolute; right:6px; top:28px;
+  width:24px; height:24px; border:none; background:transparent;
+  color:var(--op-text-dim); cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+.op-search-btn svg{ width:15px; height:15px; }
+
+.op-divider{
+  border:none; border-top:1px dashed var(--op-border);
+  margin:6px 0 18px;
+}
+
+.op-cab-totales .op-field input{ text-align:right; font-family:var(--op-mono); }
+.op-cab-totales .op-field.total input{
+  font-weight:700; font-size:15px; color:var(--op-primary-dk);
+  background:#eef4ee; border-color:var(--op-primary);
+}
+
+.op-section-label{
+  display:flex; align-items:center; justify-content:space-between;
+  margin:6px 0 10px;
+}
+.op-section-label h4{ margin:0; font-size:13px; font-weight:700; letter-spacing:.02em; }
+.op-add-row{
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:12.5px; font-weight:600; color:var(--op-primary-dk);
+  background:none; border:1px dashed var(--op-primary);
+  border-radius:7px; padding:6px 10px; cursor:pointer;
+}
+.op-add-row:hover{ background:rgba(47,111,79,.08); }
+.op-add-row svg{ width:14px; height:14px; }
+
+.op-cuentas-wrap{
+  border:1px solid var(--op-border);
+  border-radius:9px;
+  overflow-x:auto;
+  margin-bottom:14px;
+}
+table.op-cuentas{
+  width:100%; border-collapse:collapse; min-width:640px;
+}
+table.op-cuentas thead th{
+  text-align:left;
+  font-size:10.5px; text-transform:uppercase; letter-spacing:.04em;
+  color:var(--op-text-dim); font-weight:700;
+  background:var(--op-bg-soft);
+  padding:9px 10px;
+  border-bottom:1px solid var(--op-border);
+}
+table.op-cuentas td{
+  padding:6px 8px;
+  border-bottom:1px solid var(--op-border);
+  vertical-align:middle;
+}
+table.op-cuentas tr:last-child td{ border-bottom:none; }
+table.op-cuentas input,
+table.op-cuentas select{
+  width:100%; font-size:13px; padding:6px 8px;
+  border-radius:6px; border:1px solid var(--op-border);
+  background:#fff;
+}
+table.op-cuentas input.cantidad,
+table.op-cuentas input.precio,
+table.op-cuentas input.subtotal-linea{ text-align:right; font-family:var(--op-mono); }
+table.op-cuentas input.subtotal-linea{ background:var(--op-bg-soft); color:var(--op-text-dim); }
+td.op-producto-col{ min-width:200px; }
+
+.op-row-remove{
+  border:none; background:none; color:var(--op-text-dim);
+  cursor:pointer; width:26px; height:26px; border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+}
+.op-row-remove:hover{ color:var(--op-danger); background:rgba(179,67,43,.1); }
+.op-row-remove svg{ width:14px; height:14px; }
+
+.op-empty-rows td{
+  text-align:center; color:var(--op-text-dim); font-size:12.5px;
+  padding:16px;
+}
+
+.op-totales-asiento{
+  display:flex; justify-content:flex-end; gap:10px;
+  margin:2px 0 20px;
+}
+.op-total-chip{
+  display:flex; flex-direction:column; align-items:flex-end;
+  padding:8px 14px; border-radius:8px;
+  background:var(--op-bg-soft); border:1px solid var(--op-border);
+  min-width:110px;
+}
+.op-total-chip span:first-child{
+  font-size:10.5px; text-transform:uppercase; letter-spacing:.04em;
+  color:var(--op-text-dim); font-weight:600;
+}
+.op-total-chip strong{
+  font-family:var(--op-mono); font-size:14.5px; margin-top:2px;
+}
+.op-total-chip.destacado{
+  border-color:var(--op-primary); background:#eef1f7;
+}
+.op-total-chip.destacado strong{ color:var(--op-primary); }
+
+.op-foot{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 22px; border-top:1px solid var(--op-border);
+  background:var(--op-bg-soft);
+}
+.op-code{
+  display:flex; align-items:center; gap:8px;
+  font-size:12.5px; color:var(--op-text-dim); font-weight:600;
+}
+.op-code .code-display{
+  font-size:14px; font-weight:700; color:var(--op-text);
+  background:#fff; border:1px solid var(--op-border);
+  border-radius:6px; padding:4px 10px;
+}
+.op-foot-actions{ display:flex; gap:10px; }
+.op-btn{
+  font-family:var(--op-sans); font-size:13.5px; font-weight:600;
+  padding:9px 18px; border-radius:8px; cursor:pointer; border:1px solid var(--op-border);
+  background:#fff; color:var(--op-text);
+}
+.op-btn:hover{ background:var(--op-bg-soft); }
+.op-btn-guardar{
+  border-color:var(--op-primary-dk); background:var(--op-primary); color:#fff;
+}
+.op-btn-guardar:hover{ background:var(--op-primary-dk); }
+.op-btn-guardar:disabled{
+  background:#a9b3a9; border-color:#a9b3a9; cursor:not-allowed;
+}
+
+.op-msg{
+  font-size:12.5px; font-weight:600; padding:9px 12px; border-radius:7px;
+  margin-bottom:14px; display:none;
+}
+.op-msg.show{ display:block; }
+.op-msg.error{ background:#fbeae5; color:var(--op-danger); border:1px solid #f0c6ba; }
+.op-msg.success{ background:#eaf4ec; color:var(--op-primary-dk); border:1px solid #bfe0c8; }
+
+@media (max-width: 760px){
+  .op-grid, .op-grid.cols-3, .op-grid.cols-2{ grid-template-columns:1fr 1fr; }
+  .op-field.span-2, .op-field.span-4{ grid-column:1 / -1; }
+  .op-foot{ flex-direction:column; gap:12px; align-items:stretch; }
+  .op-foot-actions{ justify-content:flex-end; }
+}

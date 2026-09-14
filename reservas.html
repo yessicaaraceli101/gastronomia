@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gastro — Reservas</title>
+<link rel="stylesheet" href="assets/css/dashboard.css">
+<link rel="stylesheet" href="assets/css/reservas.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">G</div>
+      <div>
+        <div class="brand-name">Gastro</div>
+        <div class="brand-sub">Panel administrativo</div>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="general">
+      <div class="nav-label">GENERAL</div>
+      <div class="nav-group-items">
+        <a class="nav-item" href="dashboard.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg><span>Panel principal</span></a>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="operacion">
+      <button type="button" class="nav-group-header">
+        <span class="nav-label">OPERACIÓN</span>
+        <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="nav-group-items">
+        <a class="nav-item" href="mesas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="4" rx="1"/><path d="M5 11v9M19 11v9M2 20h20"/></svg><span>Mesas</span></a>
+        <a class="nav-item" href="pedidos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v19l-3-2-3 2-3-2-3 2V2z"/><path d="M9 8h6M9 12h6"/></svg><span>Pedidos</span></a>
+        <a class="nav-item" href="menu.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v7a2 2 0 0 0 2 2 2 2 0 0 0 2-2V2M8 11v11M18 2c-2 2-2 6-2 8 0 1 .5 2 2 2s2-1 2-2c0-2 0-6-2-8zM18 13v9"/></svg><span>Menú</span></a>
+        <a class="nav-item active" href="reservas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Reservas</span></a>
+        <a class="nav-item" href="clientes.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Clientes</span></a>
+        <a class="nav-item" href="proveedores.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Proveedores</span></a>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="administracion">
+      <button type="button" class="nav-group-header">
+        <span class="nav-label">ADMINISTRACIÓN</span>
+        <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="nav-group-items">
+        <a class="nav-item" href="facturacion.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg><span>Facturación</span></a>
+        <a class="nav-item" href="inventario.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8L12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg><span>Inventario</span></a>
+        <a class="nav-item" href="reportes.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg><span>Reportes</span></a>
+        <a class="nav-item" href="usuarios.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Usuarios</span></a>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="finanzas">
+      <button type="button" class="nav-group-header">
+        <span class="nav-label">FINANZAS</span>
+        <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="nav-group-items">
+        <a class="nav-item" href="caja.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7H5a2 2 0 0 1-2-2 2 2 0 0 1 2-2h13v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-8H5"/><circle cx="17" cy="15" r="1"/></svg><span>Caja</span></a>
+        <a class="nav-item" href="pagos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/></svg><span>Cuentas por pagar</span></a>
+        <a class="nav-item" href="pagos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span>Formas de pago</span></a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Reservas</h1>
+        <div class="date" id="branch-date">—</div>
+      </div>
+      <div class="topbar-right">
+
+        <!-- Selector de empresa / sucursal (multiempresa) — pintado por auth-check.js -->
+        <div class="company-switch" id="company-switch">
+          <button type="button" class="company-switch-btn" id="company-switch-btn">
+            <div class="co-mark">–</div>
+            <div class="co-text">
+              <div class="co-name">—</div>
+              <div class="co-branch">—</div>
+            </div>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="company-menu">
+            <div id="company-menu-list"></div>
+            <div class="company-menu-footer">
+              <button type="button" class="company-add" id="company-add-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                Agregar empresa
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="user-chip">
+          <div class="avatar" id="user-avatar">—</div>
+          <div>
+            <div class="u-name" id="user-name">—</div>
+            <div class="u-role" id="user-role">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="content">
+
+<div class="panel">
+  <div class="panel-head">
+    <h2>Reservas</h2>
+    <button class="btn btn-primary" id="new-reserva-btn">+ Nueva reserva</button>
+  </div>
+
+  <div class="filter-bar">
+    <button type="button" class="filter-tab active" data-filter="all">Todas <span class="f-count">—</span></button>
+    <button type="button" class="filter-tab" data-filter="ok">Confirmadas <span class="f-count">—</span></button>
+    <button type="button" class="filter-tab" data-filter="pending">Pendientes <span class="f-count">—</span></button>
+    <button type="button" class="filter-tab" data-filter="cancel">Canceladas <span class="f-count">—</span></button>
+  </div>
+
+  <table>
+    <thead><tr>
+      <th>Código</th><th>Cliente</th><th>Fecha</th><th>Hora</th><th>Personas</th><th>Mesa</th><th>Estado</th><th class="col-actions">Acciones</th>
+    </tr></thead>
+    <tbody id="reservas-body"></tbody>
+  </table>
+  <div class="pagination">
+    <span id="page-label">Página 1 de 1</span>
+    <button id="prev-page" aria-label="Página anterior">&lt;</button>
+    <button id="next-page" aria-label="Página siguiente">&gt;</button>
+  </div>
+</div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Modal: alta / edición de reserva -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="modal-title">Nueva reserva</h3>
+      <button type="button" class="modal-close" id="modal-close" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-sub" id="modal-sub">—</div>
+
+    <div class="modal-body">
+      <div class="modal-field span-2">
+        <label>Estado</label>
+        <div class="status-options">
+          <button type="button" class="status-option" data-status="ok"><i></i>Confirmada</button>
+          <button type="button" class="status-option" data-status="pending"><i></i>Pendiente</button>
+          <button type="button" class="status-option" data-status="cancel"><i></i>Cancelada</button>
+        </div>
+      </div>
+
+      <div class="modal-field">
+        <label for="f-client">Nombre del cliente</label>
+        <input type="text" id="f-client" placeholder="Ej: Ana Pérez">
+      </div>
+
+      <div class="modal-field">
+        <label for="f-phone">Teléfono</label>
+        <input type="text" id="f-phone" placeholder="Ej: 0981 234 567">
+      </div>
+
+      <div class="modal-field">
+        <label for="f-date">Fecha</label>
+        <input type="date" id="f-date">
+      </div>
+
+      <div class="modal-field">
+        <label for="f-time">Hora</label>
+        <input type="time" id="f-time">
+      </div>
+
+      <div class="modal-field">
+        <label for="f-people">Personas</label>
+        <input type="number" id="f-people" min="1" max="30">
+      </div>
+
+      <div class="modal-field">
+        <label for="f-table">Mesa asignada</label>
+        <select id="f-table">
+          <option value="">Selecciona una mesa...</option>
+        </select>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-danger-text" id="delete-reserva" style="display:none;">Eliminar reserva</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-danger" id="modal-cancel">Cancelar</button>
+        <button type="button" class="btn btn-success" id="modal-save">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: ver detalle de reserva (solo lectura) -->
+<div class="modal-overlay" id="detail-overlay">
+  <div class="modal-card detail-card">
+    <div class="modal-head">
+      <h3 id="detail-title">RES-000</h3>
+      <button type="button" class="modal-close" id="detail-close" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-sub" id="detail-sub">—</div>
+    <span class="status" id="detail-status">—</span>
+
+    <div class="detail-grid">
+      <div class="detail-field">
+        <label>Cliente</label>
+        <div id="detail-client">—</div>
+      </div>
+      <div class="detail-field">
+        <label>Teléfono</label>
+        <div id="detail-phone">—</div>
+      </div>
+      <div class="detail-field">
+        <label>Fecha</label>
+        <div id="detail-date">—</div>
+      </div>
+      <div class="detail-field">
+        <label>Hora</label>
+        <div id="detail-time">—</div>
+      </div>
+      <div class="detail-field">
+        <label>Personas</label>
+        <div id="detail-people">—</div>
+      </div>
+      <div class="detail-field">
+        <label>Mesa</label>
+        <div id="detail-table">—</div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn-danger-text" id="detail-delete">Eliminar reserva</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="detail-close-btn">Cerrar</button>
+      <button type="button" class="btn btn-primary" id="detail-edit">Editar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmación genérico -->
+<div class="modal-overlay" id="confirm-overlay">
+  <div class="confirm-card">
+    <div class="confirm-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L14.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+    </div>
+    <h3 id="confirm-title">¿Estás seguro?</h3>
+    <p id="confirm-text">Esta acción no se puede deshacer.</p>
+    <div class="confirm-actions">
+      <button type="button" class="btn" id="confirm-cancel">Volver</button>
+      <button type="button" class="btn btn-danger" id="confirm-accept">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================== -->
+<!-- FIREBASE (Auth + Firestore, igual que en dashboard.html)   -->
+<!-- ========================================================== -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAttBvD83gI770HibucrqDVzMuqLcYONNY",
+    authDomain: "gastro-7c5ad.firebaseapp.com",
+    projectId: "gastro-7c5ad",
+    storageBucket: "gastro-7c5ad.firebasestorage.app",
+    messagingSenderId: "990505475007",
+    appId: "1:990505475007:web:09a5066610de6c7e81df0a"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  console.log("Firebase conectado (reservas)");
+</script>
+
+<!-- Acordeón del sidebar: mismo comportamiento que en el resto de las páginas. -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.nav-group[data-group]').forEach(function (group) {
+      const header = group.querySelector('.nav-group-header');
+      const items = group.querySelector('.nav-group-items');
+      if (!header || !items) return;
+
+      const key = group.getAttribute('data-group');
+      let collapsed = localStorage.getItem('sidebar_' + key) === 'true';
+      if (collapsed) {
+        group.classList.add('collapsed');
+        items.style.maxHeight = '0px';
+      }
+
+      header.addEventListener('click', function () {
+        const isCollapsed = group.classList.toggle('collapsed');
+        items.style.maxHeight = isCollapsed ? '0px' : items.scrollHeight + 'px';
+        localStorage.setItem('sidebar_' + key, isCollapsed);
+      });
+    });
+  });
+</script>
+
+
+<script src="assets/js/auth-check.js"></script>
+
+<!-- Tu archivo JS (debe ir DESPUÉS de firebase y de auth-check.js) -->
+<script src="assets/js/reservas.js"></script>
+</body>
+</html>

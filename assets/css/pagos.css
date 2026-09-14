@@ -1,0 +1,72 @@
+/* ============================================================
+   ESTILOS ESPECÍFICOS DE FORMAS DE PAGO
+   Ya no define su propio tema (sidebar navy, tarjetas KPI, etc.)
+   Eso ahora lo da assets/css/dashboard.css, igual que en el resto
+   del sitio. Acá solo va lo que dashboard.css no cubre.
+   ============================================================ */
+
+/* Línea "Mes: Gs. X" debajo del valor principal de cada tarjeta */
+.stat-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* --- Tabla (paneles "Detalle por forma/banco" y "Últimos movimientos") --- */
+.table-wrapper {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+table thead th {
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b7280;
+  font-weight: 600;
+  padding: 11px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+table thead th.text-right { text-align: right; }
+
+table tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+  color: #1f2937;
+}
+table tbody tr:last-child td { border-bottom: none; }
+table tbody tr:hover { background: rgba(17, 24, 39, 0.025); }
+
+table td.text-right {
+  text-align: right;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+}
+
+/* ID clickeable en "Últimos movimientos" */
+table td.link {
+  color: #f59e0b;
+  font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+}
+
+.empty-state {
+  padding: 30px 20px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.panel .sub {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 3px;
+  font-weight: 400;
+}

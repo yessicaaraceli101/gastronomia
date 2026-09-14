@@ -1,0 +1,153 @@
+/* ============================================================
+   ESTILOS EXCLUSIVOS PARA INVENTARIO
+   ============================================================ */
+
+/* --- ESTILOS DEL BOTÓN NUEVO INSUMO (NARANJA) --- */
+#btn-nuevo-insumo {
+  background-color: #f59e0b !important; /* Naranja principal */
+  color: #ffffff !important;
+  border-color: #f59e0b !important;
+}
+#btn-nuevo-insumo:hover {
+  background-color: #d97706 !important; /* Naranja oscuro al pasar el mouse */
+  border-color: #d97706 !important;
+}
+
+/* --- ESTILOS DE LA BARRA DE BÚSQUEDA Y FILTROS --- */
+/* Asegura que el buscador y el filtro estén en la misma fila */
+.panel-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 12px;
+  flex: 1;
+  min-width: 250px;
+}
+
+.search-box svg {
+  width: 18px;
+  height: 18px;
+  color: #6b7280;
+  margin-right: 8px;
+}
+
+.search-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+}
+
+.search-box input::placeholder {
+  color: #9ca3af;
+}
+
+.filters select {
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #374151;
+  outline: none;
+  cursor: pointer;
+}
+
+.filters select:focus {
+  border-color: #f59e0b;
+}
+
+/* --- ESTILOS DE LOS BOTONES RÁPIDOS (+1, +5...) --- */
+.btn-inc {
+  padding: 6px 14px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #374151;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.btn-inc:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.btn-inc:active {
+  background: #e5e7eb;
+  transform: scale(0.95);
+}
+
+/* --- INPUT DE CANTIDAD EN MODAL DE COMPRA --- */
+#input-cantidad-comprar {
+  width: 100%; 
+  padding: 10px; 
+  margin-top: 12px; 
+  border: 1px solid #e5e7eb; 
+  border-radius: 8px; 
+  text-align: center; 
+  font-size: 18px; 
+  font-weight: 600; 
+  background: #f9fafb;
+  font-family: 'Inter', sans-serif;
+}
+
+#input-cantidad-comprar:focus {
+  outline: 2px solid #f59e0b; /* Borde naranja al hacer foco */
+  border-color: transparent;
+}
+
+/* --- ESTADO DESHABILITADO DEL BOTÓN REGISTRAR --- */
+.btn-success:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #6b7280 !important;
+}
+
+/* --- NÚMERO FINAL DEL STOCK EN VERDE --- */
+#comprar-stock-final {
+  color: #059669;
+  font-size: 24px; 
+  font-weight: 700;
+}
+
+/* --- TARJETAS INTERNAS DEL MODAL --- */
+.modal-body .info-card {
+  border: 1px solid #e5e7eb;
+}
+.modal-body .result-card {
+  border: 1px solid #a7f3d0;
+}
+
+/* --- AJUSTES DEL MODAL --- */
+.modal-card {
+  max-width: 480px !important;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}

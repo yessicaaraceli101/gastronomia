@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gastro — Menú</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/dashboard.css" />
+  <link rel="stylesheet" href="assets/css/menu.css" />
+  <link rel="stylesheet" href="assets/css/facturacion.css" />
+  <style>
+    /* Estilos para el combobox dentro del modal */
+    .op-combobox {
+      position: relative;
+      width: 100%;
+    }
+    .op-combobox input {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid #dde1e8;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #1c2230;
+      background: #fff;
+      transition: border-color 0.12s, box-shadow 0.12s;
+    }
+    .op-combobox input:focus {
+      outline: none;
+      border-color: #6c8cff;
+      box-shadow: 0 0 0 3px rgba(108,140,255,0.15);
+    }
+    .op-combobox .options {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid #dde1e8;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 10;
+      display: none;
+    }
+    .op-combobox .options.show { display: block; }
+    .op-combobox .options .option-item {
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 13px;
+      border-bottom: 1px solid #f2f3f6;
+    }
+    .op-combobox .options .option-item:hover { background: #f7f8fa; }
+    .op-combobox .options .option-item:last-child { border-bottom: none; }
+    .op-combobox .options .no-results {
+      padding: 8px 12px;
+      color: #9aa2b1;
+      font-size: 13px;
+    }
+    /* Ocultar/mostrar banco */
+    .op-banco-wrap {
+      display: none;
+    }
+    .op-banco-wrap.visible {
+      display: block;
+    }
+    /* Ajustes para el grid del modal */
+    .op-grid {
+      display: grid;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .op-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .op-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .op-field.span-2 { grid-column: span 2; }
+    .op-field.span-3 { grid-column: span 3; }
+    .op-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .op-field label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #565f70;
+    }
+    .op-field label .hint {
+      font-weight: 400;
+      color: #9aa2b1;
+      margin-left: 4px;
+    }
+    .op-field input,
+    .op-field select {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid #dde1e8;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #1c2230;
+      background: #fff;
+      transition: border-color 0.12s, box-shadow 0.12s;
+    }
+    .op-field input:focus,
+    .op-field select:focus {
+      outline: none;
+      border-color: #6c8cff;
+      box-shadow: 0 0 0 3px rgba(108,140,255,0.15);
+    }
+    .op-field input[readonly] {
+      background: #f7f8fa;
+      color: #565f70;
+    }
+    .op-field input.mono { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; }
+    .op-field input:disabled { background: #f2f3f6; color: #b0b7c3; }
+    .op-divider {
+      border: none;
+      border-top: 1px solid #eef0f3;
+      margin: 18px 0;
+    }
+    .op-cab-totales .op-field.total input {
+      font-weight: 700;
+      font-size: 15px;
+      color: #1c2230;
+      background: #f7f8fa;
+    }
+    .op-section-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 6px 0 10px;
+    }
+    .op-section-label h4 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: #1c2230;
+    }
+    .op-add-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border: 1px solid #dde1e8;
+      border-radius: 8px;
+      background: #fff;
+      color: #3557ff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .op-add-row:hover { background: #f4f6ff; }
+    .op-add-row svg { width: 15px; height: 15px; }
+    .op-cuentas-wrap {
+      border: 1px solid #eef0f3;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    table.op-cuentas {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    table.op-cuentas thead th {
+      text-align: left;
+      background: #f7f8fa;
+      color: #565f70;
+      font-weight: 600;
+      font-size: 12px;
+      padding: 9px 10px;
+      border-bottom: 1px solid #eef0f3;
+    }
+    table.op-cuentas tbody td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #f2f3f6;
+      vertical-align: middle;
+    }
+    table.op-cuentas tbody tr:last-child td { border-bottom: none; }
+    table.op-cuentas tbody tr.op-empty-rows td {
+      text-align: center;
+      color: #9aa2b1;
+      padding: 18px 10px;
+      font-style: italic;
+    }
+    table.op-cuentas input,
+    table.op-cuentas select {
+      width: 100%;
+      padding: 7px 8px;
+      border: 1px solid #dde1e8;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    table.op-cuentas input[readonly] { background: #f7f8fa; color: #565f70; }
+    .op-row-remove {
+      border: none;
+      background: transparent;
+      color: #b0b7c3;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .op-row-remove:hover { background: #fdeceb; color: #b3261e; }
+    .op-row-remove svg { width: 15px; height: 15px; }
+    .op-totales-asiento {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    .op-total-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: #f7f8fa;
+      font-size: 13px;
+      color: #565f70;
+    }
+    .op-total-chip strong { color: #1c2230; font-size: 14px; }
+    .op-total-chip.destacado { background: #eef2ff; color: #3557ff; }
+    .op-total-chip.destacado strong { color: #2540d1; }
+    .op-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-top: 1px solid #eef0f3;
+      flex-shrink: 0;
+      background: #fbfbfc;
+    }
+    .op-code {
+      font-size: 13px;
+      color: #565f70;
+    }
+    .op-code .code-display {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-weight: 700;
+      color: #1c2230;
+    }
+    .op-foot-actions { display: flex; gap: 10px; }
+    .op-btn {
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #dde1e8;
+      background: #fff;
+      color: #565f70;
+      transition: background 0.12s, opacity 0.12s;
+    }
+    .op-btn:hover { background: #f2f3f6; }
+    .op-btn-guardar {
+      border-color: transparent;
+      background: #3557ff;
+      color: #fff;
+    }
+    .op-btn-guardar:hover { background: #2c47dd; }
+    .op-btn-guardar:disabled {
+      background: #c3ccf5;
+      cursor: not-allowed;
+    }
+    .op-msg {
+      display: none;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+    .op-msg.show { display: block; }
+    .op-msg.error { background: #fdeceb; color: #b3261e; }
+    .op-msg.success { background: #e8f7ee; color: #1e7e42; }
+
+    /* ============================================================
+       MODAL A PANTALLA COMPLETA — antes era una tarjeta chica
+       centrada que obligaba a scrollear mucho. Ahora ocupa toda la
+       ventana; el encabezado y el pie quedan fijos, y solo el
+       cuerpo del medio (op-body) scrollea.
+       ============================================================ */
+    #op-overlay.op-overlay {
+      padding: 0 !important;
+      align-items: stretch !important;
+      justify-content: stretch !important;
+    }
+    #op-overlay .op-card {
+      width: 100vw !important;
+      max-width: 100vw !important;
+      height: 100vh !important;
+      max-height: 100vh !important;
+      border-radius: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      margin: 0 !important;
+    }
+    #op-overlay .op-head,
+    #op-overlay .op-foot {
+      flex-shrink: 0;
+    }
+    #op-overlay .op-body {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      padding-left: 24px;
+      padding-right: 24px;
+      box-sizing: border-box;
+    }
+
+    /* Dos columnas: izquierda (cliente/pago/cobro), derecha (productos,
+       más ancha porque la tabla necesita más lugar). */
+    .op-columns {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+    .op-col-left .op-grid { margin-bottom: 14px; }
+    @media (max-width: 900px) {
+      .op-columns { grid-template-columns: 1fr; }
+    }
+
+    /* ============================================================
+       COBRO RÁPIDO: Monto recibido / Vuelto — grande, imposible de
+       no ver, para cobrar en efectivo en dos toques.
+       ============================================================ */
+    .op-cobro-rapido {
+      display: none;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      background: #f0fdf4;
+      border: 2px solid #86efac;
+      border-radius: 16px;
+      padding: 28px 36px;
+      margin-top: 20px;
+      margin-bottom: 8px;
+    }
+    .op-cobro-rapido.visible { display: grid; }
+    .op-cobro-campo { display: flex; flex-direction: column; gap: 10px; }
+    .op-cobro-campo label {
+      font-size: 16px;
+      font-weight: 800;
+      color: #166534;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .op-cobro-input {
+      width: 100%;
+      padding: 22px 22px;
+      border: 3px solid #86efac;
+      border-radius: 14px;
+      font-size: 48px;
+      font-weight: 800;
+      color: #14532d;
+      background: #fff;
+      box-sizing: border-box;
+    }
+    .op-cobro-input:focus {
+      outline: none;
+      border-color: #22c55e;
+      box-shadow: 0 0 0 4px rgba(34,197,94,0.2);
+    }
+    .op-cobro-vuelto {
+      font-size: 56px;
+      font-weight: 900;
+      color: #166534;
+      padding: 18px 18px;
+      display: flex;
+      align-items: center;
+    }
+    .op-cobro-vuelto.negativo { color: #b3261e; }
+
+    /* ============================================================
+       Datos fiscales (opcional) — colapsado por defecto
+       ============================================================ */
+    .op-avanzado {
+      border: 1px solid #eef0f3;
+      border-radius: 10px;
+      margin: 18px 0 16px;
+      overflow: hidden;
+    }
+    .op-avanzado summary {
+      cursor: pointer;
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #565f70;
+      background: #f7f8fa;
+      list-style: none;
+      user-select: none;
+    }
+    .op-avanzado summary::-webkit-details-marker { display: none; }
+    .op-avanzado summary::before {
+      content: "▸ ";
+      display: inline-block;
+      margin-right: 4px;
+    }
+    .op-avanzado[open] summary::before { content: "▾ "; }
+    .op-avanzado[open] summary { border-bottom: 1px solid #eef0f3; }
+    .op-avanzado > *:not(summary) { padding-left: 16px; padding-right: 16px; }
+    .op-avanzado > .op-grid:last-of-type { padding-bottom: 16px; }
+
+    /* ============================================================
+       Selector de formato (Ticket / Factura) en el modal de detalle
+       ============================================================ */
+    .pdf-formato-select {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-right: auto;
+    }
+    .pdf-formato-select label {
+      font-size: 13px;
+      color: #565f70;
+      font-weight: 600;
+    }
+    .pdf-formato-select select {
+      padding: 7px 10px;
+      border: 1px solid #dde1e8;
+      border-radius: 6px;
+      font-size: 13px;
+      background: #fff;
+      color: #1c2230;
+    }
+    #factura-modal-overlay .modal-actions {
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    #factura-modal-overlay .modal-actions .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    #factura-modal-overlay .modal-actions .btn svg {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+    }
+    .btn-download {
+      background: #dc2626;
+      border-color: #dc2626;
+      color: #fff;
+    }
+    .btn-download:hover {
+      background: #b91c1c;
+      border-color: #b91c1c;
+    }
+    .btn-gray {
+      background: #6b7280;
+      border-color: #6b7280;
+      color: #fff;
+    }
+    .btn-gray:hover {
+      background: #4b5563;
+      border-color: #4b5563;
+    }
+    .op-btn-cancelar {
+      background: #6b7280;
+      border-color: #6b7280;
+      color: #fff;
+    }
+    .op-btn-cancelar:hover {
+      background: #4b5563;
+      border-color: #4b5563;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">—</div>
+        <div>
+          <div class="brand-name">—</div>
+          <div class="brand-sub">—</div>
+        </div>
+      </div>
+
+      <div class="nav-group" data-group="general">
+        <div class="nav-label">GENERAL</div>
+        <div class="nav-group-items">
+          <a class="nav-item" href="dashboard.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg><span>Panel principal</span></a>
+        </div>
+      </div>
+
+      <div class="nav-group" data-group="operacion">
+        <button type="button" class="nav-group-header">
+          <span class="nav-label">OPERACIÓN</span>
+          <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="nav-group-items">
+          <a class="nav-item" href="mesas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="4" rx="1"/><path d="M5 11v9M19 11v9M2 20h20"/></svg><span>Mesas</span></a>
+          <a class="nav-item" href="pedidos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v19l-3-2-3 2-3-2-3 2V2z"/><path d="M9 8h6M9 12h6"/></svg><span>Pedidos</span></a>
+          <a class="nav-item active" href="menu.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v7a2 2 0 0 0 2 2 2 2 0 0 0 2-2V2M8 11v11M18 2c-2 2-2 6-2 8 0 1 .5 2 2 2s2-1 2-2c0-2 0-6-2-8zM18 13v9"/></svg><span>Menú</span></a>
+          <a class="nav-item" href="reservas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Reservas</span></a>
+          <a class="nav-item" href="clientes.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Clientes</span></a>
+          <a class="nav-item" href="proveedores.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Proveedores</span></a>
+        </div>
+      </div>
+
+      <div class="nav-group" data-group="administracion">
+        <button type="button" class="nav-group-header">
+          <span class="nav-label">ADMINISTRACIÓN</span>
+          <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="nav-group-items">
+          <a class="nav-item" href="facturacion.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg><span>Facturación</span></a>
+          <a class="nav-item" href="inventario.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8L12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg><span>Inventario</span></a>
+          <a class="nav-item" href="reportes.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg><span>Reportes</span></a>
+          <a class="nav-item" href="usuarios.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Usuarios</span></a>
+        </div>
+      </div>
+
+      <div class="nav-group" data-group="finanzas">
+        <button type="button" class="nav-group-header">
+          <span class="nav-label">FINANZAS</span>
+          <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="nav-group-items">
+          <a class="nav-item" href="caja.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7H5a2 2 0 0 1-2-2 2 2 0 0 1 2-2h13v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-8H5"/><circle cx="17" cy="15" r="1"/></svg><span>Caja</span></a>
+          <a class="nav-item" href="cuentas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/></svg><span>Cuentas por pagar</span></a>
+          <a class="nav-item" href="pagos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span>Formas de pago</span></a>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="menu-topbar">
+        <div class="restaurant-block">
+          <h1>Menú</h1>
+        </div>
+
+        <!-- Selector de empresa/sucursal (lo llena auth-check.js) -->
+        <div class="company-switch" id="company-switch">
+          <button type="button" class="company-switch-btn" id="company-switch-btn">
+            <div class="co-mark">–</div>
+            <div class="co-text">
+              <div class="co-name">—</div>
+              <div class="co-branch">—</div>
+            </div>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="company-menu">
+            <div id="company-menu-list"></div>
+            <div class="company-menu-footer">
+              <button type="button" class="company-add" id="company-add-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                Agregar empresa
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input type="text" id="menu-search" placeholder="Buscar en el menú..." />
+        </div>
+        <div class="topbar-right">
+          <div class="seg" id="currency-toggle">
+            <button class="active" data-currency="Gs">Gs</button>
+            <button data-currency="US$">US$</button>
+            <button data-currency="R$">R$</button>
+          </div>
+          <div class="user-chip">
+            <div class="avatar" id="user-avatar">—</div>
+            <div>
+              <div class="u-name" id="user-name">—</div>
+              <div class="u-role" id="user-role">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-content">
+        <div class="menu-catalog">
+          <div class="catalog-toolbar">
+            <div class="category-tabs" id="category-tabs"></div>
+            <button class="btn-add-dish" id="btn-add-dish">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              Agregar plato
+            </button>
+          </div>
+
+          <div class="add-dish-panel" id="add-dish-panel" hidden>
+            <div class="add-dish-row">
+              <div class="field">
+                <label for="dish-name">Nombre del plato</label>
+                <input type="text" id="dish-name" placeholder="Ej: Pizza Cuatro Estaciones" />
+              </div>
+              <div class="field field-small">
+                <label for="dish-price">Precio</label>
+                <input type="text" id="dish-price" placeholder="Ej: 30.000" />
+              </div>
+            </div>
+            <div class="add-dish-row">
+              <div class="field field-small">
+                <label for="dish-category">Categoría</label>
+                <select id="dish-category"></select>
+              </div>
+              <div class="field">
+                <label for="dish-note">Nota (opcional)</label>
+                <input type="text" id="dish-note" placeholder="Ej: Sin gluten" />
+              </div>
+              <div class="field field-small">
+                <label for="dish-image">Subir imagen (opcional)</label>
+                <input type="file" id="dish-image" accept="image/*" />
+              </div>
+            </div>
+            <div class="add-dish-actions">
+              <button class="btn-cancel-dish" id="btn-cancel-dish">Cancelar</button>
+              <button class="btn-save-dish" id="btn-save-dish">Guardar plato</button>
+            </div>
+          </div>
+
+          <div class="product-grid" id="product-grid"></div>
+        </div>
+
+        <aside class="order-panel">
+          <div class="order-panel-header">
+            <div>
+              <div class="order-title">Pedido</div>
+              <div class="order-table">Mesa 31</div>
+            </div>
+            <button class="add-on-btn" id="add-on-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+              Agregar
+            </button>
+          </div>
+
+          <div class="order-items" id="order-items">
+            <div class="order-empty" id="order-empty">Tocá un plato del menú para agregarlo al pedido.</div>
+          </div>
+
+          <div class="order-totals">
+            <div class="total-row"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
+            <div class="total-row total-final"><span>Total</span><span id="total">$0.00</span></div>
+          </div>
+
+          <button class="btn-print" id="print-bill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Registrar compra
+          </button>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="edit-modal-overlay">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="edit-modal-title">Editar plato</h3>
+        <button class="modal-close" id="edit-modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-field">
+          <label for="edit-dish-name">Nombre</label>
+          <input type="text" id="edit-dish-name" placeholder="Nombre del plato" />
+        </div>
+        <div class="modal-field">
+          <label for="edit-dish-price">Precio</label>
+          <input type="text" id="edit-dish-price" placeholder="Ej: 30.000" />
+        </div>
+        <div class="modal-field">
+          <label for="edit-dish-category">Categoría</label>
+          <select id="edit-dish-category"></select>
+        </div>
+        <div class="modal-field">
+          <label for="edit-dish-note">Nota (opcional)</label>
+          <input type="text" id="edit-dish-note" placeholder="Ej: Sin gluten" />
+        </div>
+        <div class="modal-field">
+          <label for="edit-dish-image">Cambiar imagen (opcional)</label>
+          <input type="file" id="edit-dish-image" accept="image/*" />
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-danger" id="edit-modal-cancel">Cancelar</button>
+          <button class="btn btn-success" id="edit-modal-save">Actualizar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="confirm-modal-overlay">
+    <div class="confirm-card">
+      <div class="confirm-icon">⚠️</div>
+      <h3 id="confirm-title">¿Eliminar este plato?</h3>
+      <p id="confirm-text">Esta acción no se puede deshacer.</p>
+      <div class="confirm-actions">
+        <button class="btn" id="confirm-cancel">Cancelar</button>
+        <button class="btn btn-danger" id="confirm-accept">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+<div class="op-overlay" id="op-overlay">
+  <div class="op-card">
+    <div class="op-head">
+      <div class="op-head-title">
+        <span class="eyebrow" id="op-modal-eyebrow">Operaciones</span>
+        <h3 id="op-modal-title">Facturación · Ventas</h3>
+      </div>
+      <button class="op-close" id="op-close" aria-label="Cerrar">&times;</button>
+    </div>
+
+    <div class="op-body">
+      <div class="op-msg" id="op-msg"></div>
+
+      <div class="op-columns">
+        <!-- COLUMNA IZQUIERDA: quién es, cómo paga, cuánto entregó -->
+        <div class="op-col-left">
+          <!-- Cliente + CI/RUC (se completa solo al elegir el cliente) -->
+          <div class="op-grid cols-2">
+            <div class="op-field span-2">
+              <label>Cliente</label>
+              <div class="op-combobox" id="cliente-combobox">
+                <input type="text" id="op-cliente" placeholder="Seleccioná un cliente…">
+                <div class="options" id="cliente-options-list"></div>
+              </div>
+            </div>
+          </div>
+          <div class="op-grid cols-2">
+            <div class="op-field span-2">
+              <label>CI / RUC</label>
+              <input type="text" id="op-cliente-ci" placeholder="—" class="mono">
+            </div>
+          </div>
+
+          <!-- Método de pago + Banco (condicional) + Estado -->
+          <div class="op-grid cols-2">
+            <div class="op-field">
+              <label>Método de pago</label>
+              <select id="op-metodo-pago">
+                <option value="Efectivo">Efectivo</option>
+                <option value="Transferencia">Transferencia</option>
+                <option value="Tarjeta">Tarjeta</option>
+                <option value="QR">QR</option>
+              </select>
+            </div>
+            <div class="op-field">
+              <label>Estado</label>
+              <select id="op-estado">
+                <option value="Pagada">Pagada</option>
+                <option value="Pendiente">Pendiente</option>
+                <option value="Anulada">Anulada</option>
+              </select>
+            </div>
+          </div>
+          <div class="op-field op-banco-wrap" id="op-banco-wrap">
+            <div class="op-grid cols-2" style="margin-bottom:0;">
+              <div class="op-field">
+                <label>Banco</label>
+                <input type="text" id="op-banco" placeholder="Nombre del banco">
+              </div>
+              <div class="op-field">
+                <label>N.º de comprobante</label>
+                <input type="text" id="op-numero-doc" placeholder="000-000-0000000" class="mono">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: qué se está vendiendo -->
+        <div class="op-col-right">
+          <div class="op-section-label">
+            <h4>Productos</h4>
+            <button type="button" class="op-add-row" id="op-add-row">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+              Agregar producto
+            </button>
+          </div>
+
+          <div class="op-cuentas-wrap">
+            <table class="op-cuentas">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th style="width:90px;">Cant.</th>
+                  <th style="width:120px;">Precio</th>
+                  <th style="width:130px;">Subtotal</th>
+                  <th style="width:36px;"></th>
+                </tr>
+              </thead>
+              <tbody id="op-cuentas-body">
+                <tr class="op-empty-rows"><td colspan="5">Agregá al menos un producto</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="op-totales-asiento">
+            <div class="op-total-chip">
+              <span>Ítems</span>
+              <strong id="op-tot-items">0</strong>
+            </div>
+            <div class="op-total-chip destacado">
+              <span>Total productos</span>
+              <strong id="op-tot-productos">0</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COBRO RÁPIDO: Monto recibido / Vuelto — a todo el ancho del
+           modal, no metido en la columna angosta, para que se vea
+           realmente grande. Solo aparece con método de pago = Efectivo. -->
+      <div class="op-cobro-rapido" id="op-cobro-rapido">
+        <div class="op-cobro-campo">
+          <label for="op-monto-recibido">Monto recibido</label>
+          <input type="text" id="op-monto-recibido" inputmode="numeric" placeholder="0" class="op-cobro-input">
+        </div>
+        <div class="op-cobro-campo">
+          <label>Vuelto</label>
+          <div class="op-cobro-vuelto" id="op-vuelto-display">Gs. 0</div>
+        </div>
+      </div>
+
+      <!-- Datos fiscales — colapsado por defecto. Casi nunca hace falta
+           tocarlos para una venta normal; siguen ahí para cuando sí
+           haga falta cargar timbrado, nota de crédito, etc. -->
+      <details class="op-avanzado" style="display:none;">
+        <summary>Datos fiscales (opcional)</summary>
+
+        <div class="op-grid cols-3" style="margin-top:14px;">
+          <div class="op-field span-2">
+            <label>Tipo de operación</label>
+            <select id="op-tipo-oper">
+              <option value="VENTA_MERCADERIAS">Venta de mercaderías</option>
+              <option value="VENTA_SERVICIOS">Venta de servicios</option>
+              <option value="VENTA_EXONERADA">Venta exonerada</option>
+              <option value="NOTA_CREDITO">Nota de crédito</option>
+              <option value="NOTA_DEBITO">Nota de débito</option>
+            </select>
+          </div>
+          <div class="op-field">
+            <label>Periodo</label>
+            <input type="month" id="op-periodo">
+          </div>
+        </div>
+
+        <div class="op-grid cols-3">
+          <div class="op-field">
+            <label>Tipo de documento</label>
+            <select id="op-tipo-doc">
+              <option value="FACTURA">Factura</option>
+              <option value="TICKET">Ticket</option>
+            </select>
+          </div>
+          <div class="op-field">
+            <label>Timbrado</label>
+            <input type="text" id="op-timbrado" placeholder="12345678" maxlength="8" class="mono">
+          </div>
+        </div>
+
+        <div class="op-grid cols-3">
+          <div class="op-field">
+            <label>Moneda</label>
+            <select id="op-moneda">
+              <option value="Gs">Gs — Guaraníes</option>
+              <option value="US$">US$ — Dólares</option>
+              <option value="R$">R$ — Reales</option>
+            </select>
+          </div>
+          <div class="op-field">
+            <label>Fec. emisión</label>
+            <input type="date" id="op-fec-emision">
+          </div>
+          <div class="op-field">
+            <label>Fec. vcto.</label>
+            <input type="date" id="op-fec-vcto">
+          </div>
+        </div>
+
+        <div class="op-grid cols-3 op-cab-totales">
+          <div class="op-field">
+            <label>Subtotal <span class="hint">(según productos)</span></label>
+            <input type="number" id="op-subtotal" value="0" step="0.01" min="0" readonly>
+          </div>
+          <div class="op-field">
+            <label>Exoneradas</label>
+            <input type="number" id="op-no-gravada" value="0" step="0.01" min="0">
+          </div>
+          <div class="op-field total">
+            <label>Total</label>
+            <input type="text" id="op-total" value="0" readonly>
+          </div>
+        </div>
+
+        <div class="op-grid cols-2" style="margin-bottom:4px;">
+          <div class="op-field span-2">
+            <label>Glosa</label>
+            <input type="text" id="op-glosa" placeholder="Descripción de la operación">
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="op-foot">
+      <div class="op-code">
+        Código: <span class="code-display" id="op-codigo">—</span>
+      </div>
+      <div class="op-foot-actions">
+        <button type="button" class="op-btn op-btn-cancelar" id="op-cancelar">Cancelar</button>
+        <button type="button" class="op-btn op-btn-guardar" id="op-guardar">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- Aviso de N.º de comprobante repetido: mismo modal que usa
+       facturacion.html, para que la validación de duplicados funcione
+       igual acá cuando se registra una compra desde el Menú. -->
+  <div class="modal-overlay" id="comprobante-duplicado-overlay">
+    <div class="confirm-card">
+      <div class="confirm-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L14.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+      </div>
+      <h3>N.º de comprobante repetido</h3>
+      <p id="comprobante-duplicado-texto">Ese número de comprobante ya fue cargado en otra factura.</p>
+      <div class="confirm-actions">
+        <button type="button" class="btn btn-success" id="comprobante-duplicado-ok" style="flex:1;">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAttBvD83gI770HibucrqDVzMuqLcYONNY",
+      authDomain: "gastro-7c5ad.firebaseapp.com",
+      projectId: "gastro-7c5ad",
+      storageBucket: "gastro-7c5ad.firebasestorage.app",
+      messagingSenderId: "990505475007",
+      appId: "1:990505475007:web:09a5066610de6c7e81df0a"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
+      console.warn('No se pudo fijar persistencia LOCAL de Firebase:', err);
+    });
+
+    console.log("Firebase conectado correctamente");
+  </script>
+
+  <!-- 🔒 Sesión + empresa/sucursal real (multiempresa) -->
+  <script src="assets/js/auth-check.js"></script>
+
+  <!-- Acordeón del sidebar -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.nav-group[data-group]').forEach(function (group) {
+        const header = group.querySelector('.nav-group-header');
+        const items = group.querySelector('.nav-group-items');
+        if (!header || !items) return;
+
+        const key = group.getAttribute('data-group');
+        let collapsed = localStorage.getItem('sidebar_' + key) === 'true';
+        if (collapsed) {
+          group.classList.add('collapsed');
+          items.style.maxHeight = '0px';
+        }
+
+        header.addEventListener('click', function () {
+          const isCollapsed = group.classList.toggle('collapsed');
+          items.style.maxHeight = isCollapsed ? '0px' : items.scrollHeight + 'px';
+          localStorage.setItem('sidebar_' + key, isCollapsed);
+        });
+      });
+    });
+  </script>
+
+  <script src="assets/js/facturacion.js"></script>
+  <script src="assets/js/menu.js"></script>
+</body>
+</html>

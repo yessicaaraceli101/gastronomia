@@ -1,0 +1,412 @@
+/* ============================================================
+   LOGIN — Gastro (celeste del sidebar + naranja)
+   ============================================================ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Paleta alineada al celeste real del sidebar (medido de la captura:
+     rgb(3,105,161) = #0369A1), en vez del navy casi negro de antes. */
+  --navy-bg: #0369a1;
+  --navy-card: #075985;
+  --navy-border: #0c4a6e;
+  --navy-input: #054766;
+  --navy-input-border: #0284c7;
+  --text-primary: #f3f6fb;
+  --text-secondary: #bae6fd;
+  --orange: #f7931e;
+  --orange-hover: #e07f0e;
+  --error-bg: rgba(220, 38, 38, 0.16);
+  --error-text: #fecaca;
+  --error-border: rgba(248, 113, 113, 0.45);
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--navy-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+  background-image:
+    linear-gradient(rgba(3, 105, 161, 0.55), rgba(3, 105, 161, 0.55)),
+    url("https://images.unsplash.com/photo-1595708684082-a173bb3a06c5?fm=jpg&q=80&w=2000&auto=format&fit=crop");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 440px;
+}
+
+.login-card {
+  background: rgba(7, 89, 133, 0.90);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 40px 32px 32px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--navy-border);
+  transition: transform 0.2s ease;
+}
+
+/* ===== Logo + botón personalizar ===== */
+.login-logo-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.login-logo {
+  display: flex;
+  justify-content: center;
+  flex: 1;
+}
+
+#company-logo {
+  max-height: 60px;
+  width: auto;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.btn-customize {
+  background: transparent;
+  border: 1px solid var(--navy-border);
+  color: var(--text-secondary);
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-customize:hover {
+  border-color: var(--orange);
+  color: var(--orange);
+  background: rgba(247, 147, 30, 0.12);
+}
+
+.btn-customize svg {
+  width: 18px;
+  height: 18px;
+}
+
+h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+.login-sub {
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--navy-input-border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: var(--navy-input);
+  color: var(--text-primary);
+}
+
+.form-group input::placeholder {
+  color: #7dc3e8;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(247, 147, 30, 0.18);
+  background: #04405d;
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 4px 0 16px;
+  font-size: 13px;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.remember-me input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--orange);
+}
+
+.forgot-link {
+  color: var(--orange);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
+}
+
+.login-error {
+  background: var(--error-bg);
+  color: var(--error-text);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  border: 1px solid var(--error-border);
+}
+
+.btn-login {
+  width: 100%;
+  padding: 12px;
+  background: var(--orange);
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0a1626;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.btn-login:hover {
+  background: var(--orange-hover);
+}
+
+.btn-login:active {
+  transform: scale(0.98);
+}
+
+.btn-login:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.login-footer {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.login-footer a {
+  color: var(--orange);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.login-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Spinner */
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(10, 22, 38, 0.3);
+  border-top-color: #0a1626;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   MODALES (recuperación y personalización)
+   ============================================================ */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 30, 48, 0.65);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+
+.modal-card {
+  background: var(--navy-card);
+  border: 1px solid var(--navy-border);
+  border-radius: 16px;
+  max-width: 440px;
+  width: 100%;
+  overflow: hidden;
+  animation: modalFadeIn 0.3s ease;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+}
+
+@keyframes modalFadeIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--navy-border);
+}
+
+.modal-head h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 0 4px;
+}
+
+.modal-close:hover {
+  color: var(--text-primary);
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-body p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn {
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel {
+  background: var(--navy-input);
+  color: var(--text-primary);
+  border-color: var(--navy-input-border);
+}
+
+.btn-cancel:hover {
+  background: #04405d;
+}
+
+.btn-primary {
+  background: var(--orange);
+  color: #0a1626;
+  border-color: var(--orange);
+}
+
+.btn-primary:hover {
+  background: var(--orange-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#reset-message,
+#customize-msg {
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+#reset-message.success,
+#customize-msg.success {
+  color: #6ee7b7;
+}
+
+#reset-message.error,
+#customize-msg.error {
+  color: var(--error-text);
+}
+
+#custom-logo-preview img {
+  max-height: 80px;
+  border-radius: 6px;
+  border: 1px solid var(--navy-border);
+  margin-top: 6px;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .login-card {
+    padding: 32px 20px 24px;
+  }
+  .form-options {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+}

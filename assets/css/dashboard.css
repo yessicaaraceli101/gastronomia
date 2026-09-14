@@ -1,0 +1,679 @@
+/* ============================================================
+   RESET Y BASE
+   ============================================================ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f6f5f2;
+  --panel: #ffffff;
+  --border: #e5e7eb;
+  --text: #1f2937;
+  --text-soft: #6b7280;
+  --text-faint: #9ca3af;
+  --accent: #f59e0b;
+  --accent-dark: #b45309;
+  /* Sidebar en azul celeste. Antes era un verde oscuro casi negro
+     (#1f2320) con letras color crema (#d7d5cf) — ahora el fondo es
+     mucho más claro, así que subimos el texto a blanco puro para que
+     siga leyéndose bien (el crema/beige de antes se perdía contra el
+     celeste). */
+  --sidebar-bg: #0369a1;
+  --sidebar-text: #ffffff;
+  --sidebar-text-soft: #bae6fd;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+h1, h2, h3 {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  color: var(--text);
+}
+
+a { text-decoration: none; color: inherit; }
+button { font-family: inherit; cursor: pointer; }
+
+/* ============================================================
+   LAYOUT GENERAL
+   ============================================================ */
+.app {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.content {
+  padding: 24px;
+}
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+.sidebar {
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px 20px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #1f2320;
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.brand-name {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 16px;
+  color: #ffffff;
+}
+
+.brand-sub {
+  font-size: 11px;
+  color: var(--sidebar-text-soft);
+}
+
+/* ============================================================
+   GRUPOS DE NAVEGACIÓN (con acordeón desplegable)
+   ============================================================ */
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.nav-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--sidebar-text-soft);
+  padding: 0 12px 6px 12px;
+}
+
+.nav-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+}
+
+.nav-group-header .nav-label {
+  padding: 8px 12px 6px 12px;
+}
+
+.nav-group-header:hover .nav-label {
+  color: #ffffff;
+}
+
+.nav-toggle-icon {
+  width: 13px;
+  height: 13px;
+  color: var(--sidebar-text-soft);
+  margin-right: 10px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, color 0.15s ease;
+}
+
+.nav-group-header:hover .nav-toggle-icon {
+  color: #ffffff;
+}
+
+.nav-group.collapsed .nav-toggle-icon {
+  transform: rotate(-90deg);
+}
+
+.nav-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  max-height: 500px;
+  transition: max-height 0.25s ease;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--sidebar-text);
+  transition: background 0.15s, color 0.15s;
+}
+
+.nav-item svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.nav-item:hover {
+  background: rgba(255,255,255,0.16);
+  color: #ffffff;
+}
+
+.nav-item.active {
+  background: var(--accent);
+  color: #1f2320;
+  font-weight: 600;
+}
+
+.nav-item.active svg {
+  opacity: 1;
+  color: #1f2320;
+}
+
+/* ============================================================
+   TOPBAR
+   ============================================================ */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.topbar h1 {
+  font-size: 22px;
+}
+
+.topbar .date {
+  font-size: 13px;
+  color: var(--text-soft);
+  margin-top: 2px;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ============================================================
+   SELECTOR DE EMPRESA (company-switch)
+   ============================================================ */
+.company-switch {
+  position: relative;
+}
+
+.company-switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  min-width: 210px;
+  transition: border-color 0.15s;
+}
+
+.company-switch-btn:hover {
+  border-color: var(--text-faint);
+}
+
+.company-switch-btn .co-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #ede9e3;
+  color: var(--accent-dark);
+  font-weight: 700;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.company-switch-btn .co-text {
+  text-align: left;
+  min-width: 0;
+}
+
+.company-switch-btn .co-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.company-switch-btn .co-branch {
+  font-size: 11.5px;
+  color: var(--text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.company-switch-btn .chev {
+  width: 16px;
+  height: 16px;
+  color: var(--text-faint);
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.company-switch.open .company-switch-btn .chev {
+  transform: rotate(180deg);
+}
+
+.company-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 24px -8px rgba(0,0,0,0.15);
+  padding: 8px;
+  z-index: 50;
+}
+
+.company-switch.open .company-menu {
+  display: block;
+}
+
+.company-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+
+.company-option:hover {
+  background: var(--bg);
+}
+
+.company-option .co-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #ede9e3;
+  color: var(--accent-dark);
+  font-weight: 700;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.company-option .co-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.company-option .co-branch {
+  font-size: 11.5px;
+  color: var(--text-soft);
+}
+
+.company-option .check {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  color: var(--accent);
+  opacity: 0;
+  flex-shrink: 0;
+}
+
+.company-option.active .check {
+  opacity: 1;
+}
+
+.company-option.active {
+  background: #fff7ea;
+}
+
+.company-menu-footer {
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+.company-add {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-dark);
+}
+
+.company-add:hover {
+  background: #fff7ea;
+}
+
+.company-add svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ============================================================
+   TOGGLE DE MONEDA (segmented control)
+   ============================================================ */
+.seg {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.seg button {
+  border: none;
+  background: var(--panel);
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-soft);
+  border-right: 1px solid var(--border);
+  transition: background 0.15s, color 0.15s;
+}
+
+.seg button:last-child {
+  border-right: none;
+}
+
+.seg button:hover {
+  background: var(--bg);
+}
+
+.seg button.active {
+  background: var(--accent);
+  color: #1f2320;
+}
+
+/* ============================================================
+   CHIP DE USUARIO
+   ============================================================ */
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.user-chip .avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #1f2320;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-chip .u-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.user-chip .u-role {
+  font-size: 11.5px;
+  color: var(--text-soft);
+}
+
+/* ============================================================
+   PANEL GENÉRICO (usado en dashboard, proveedores, etc.)
+   ============================================================ */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.panel-head h2 {
+  font-size: 17px;
+}
+
+/* ============================================================
+   BOTONES GENÉRICOS
+   ============================================================ */
+.btn {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn:hover {
+  background: var(--bg);
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #1f2320;
+}
+
+.btn-primary:hover {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+  color: #ffffff;
+}
+
+.btn-success {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #ffffff;
+}
+
+.btn-success:hover {
+  background: #15803d;
+  border-color: #15803d;
+}
+
+.btn-danger {
+  background: var(--panel);
+  border-color: var(--border);
+  color: #b91c1c;
+}
+
+.btn-danger:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+/* ============================================================
+   ESTADÍSTICAS (CARDS SUPERIORES)
+   ============================================================ */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stats .card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.stat-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.stat-icon svg {
+  width: 20px;
+  height: 20px;
+  color: #6b7280;
+}
+
+.pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 10px;
+}
+.pill.up { background: #dcfce7; color: #166534; }
+.pill.down { background: #fee2e2; color: #991b1b; }
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 4px 0;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* ============================================================
+   ACCESOS RÁPIDOS
+   ============================================================ */
+.quick-access-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+  padding: 0 24px 24px 24px;
+}
+
+.quick-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 16px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  text-decoration: none;
+  color: #374151;
+  transition: all 0.25s ease;
+  gap: 12px;
+}
+
+.quick-card:hover {
+  background: #fffbeb;
+  border-color: #f59e0b;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px -4px rgba(245, 158, 11, 0.15);
+}
+
+.quick-card .qc-icon svg {
+  width: 32px;
+  height: 32px;
+  color: #6b7280;
+  transition: color 0.25s;
+}
+
+.quick-card:hover .qc-icon svg {
+  color: #f59e0b;
+}
+
+.quick-card .qc-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: #1f2937;
+  text-align: center;
+}

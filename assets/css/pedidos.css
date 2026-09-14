@@ -1,0 +1,439 @@
+/* ============================================================
+   Gastro — Pedidos (pedidos.css)
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   FALLBACK DE VARIABLES
+   pedidos.css usa nombres de variables (--line, --paper, --ink,
+   --muted, --brand, --brand-2, --brand-2-soft, --surface,
+   --font-mono, --pending, --pending-soft, --ok, --ok-soft,
+   --danger, --danger-soft) que NO existen en dashboard.css.
+   Este bloque las define como respaldo usando la misma paleta
+   de dashboard.css, para que la página no dependa de un tercer
+   archivo que no esté cargado. Si en tu proyecto ya existen
+   definidas en otro CSS cargado después de este, esas tendrán
+   prioridad y no pasa nada.
+   ------------------------------------------------------------ */
+:root {
+  --line: var(--border, #e5e7eb);
+  --paper: var(--bg, #f6f5f2);
+  --surface: var(--panel, #ffffff);
+  --ink: var(--text, #1f2937);
+  --muted: var(--text-soft, #6b7280);
+  --brand: var(--accent, #f59e0b);
+  --brand-2: var(--accent-dark, #b45309);
+  --brand-2-soft: #fff3e0;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --pending: #b45309;
+  --pending-soft: #fef3c7;
+  --ok: #16a34a;
+  --ok-soft: #dcfce7;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+}
+
+.panel-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.panel-toolbar .search-box {
+  flex: 1;
+  min-width: 200px;
+  max-width: 360px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 14px;
+  transition: border-color 0.2s;
+}
+.panel-toolbar .search-box:focus-within {
+  border-color: var(--brand);
+}
+.panel-toolbar .search-box svg {
+  width: 18px;
+  height: 18px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.panel-toolbar .search-box input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13.5px;
+  font-family: inherit;
+  color: var(--ink);
+  width: 100%;
+}
+.panel-toolbar .filters {
+  display: flex;
+  gap: 10px;
+}
+.panel-toolbar .filters select {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  padding: 0;
+}
+#pedidos-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+#pedidos-table th {
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+#pedidos-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+#pedidos-table tbody tr:hover {
+  background: rgba(22, 33, 29, 0.02);
+}
+#pedidos-table .id {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--brand);
+}
+#pedidos-table .estado {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+#pedidos-table .estado.Pending {
+  background: var(--pending-soft);
+  color: var(--pending);
+}
+#pedidos-table .estado.Preparing {
+  background: var(--brand-2-soft);
+  color: #9A6B00;
+}
+#pedidos-table .estado.Out\ for\ delivery {
+  background: #D6EAF8;
+  color: #1A5276;
+}
+#pedidos-table .estado.Delivered {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+#pedidos-table .estado.Canceled {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* Columna de acciones: los 3 botones siempre en una sola fila */
+#pedidos-table td:last-child {
+  min-width: 110px;
+  white-space: nowrap;
+}
+
+/* Acciones en tabla */
+.btn-accion {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-accion:hover {
+  background: var(--paper);
+  color: var(--brand);
+}
+.btn-accion.editar:hover {
+  color: var(--brand-2);
+}
+.btn-accion.ver:hover {
+  color: var(--brand);
+}
+.btn-accion svg {
+  vertical-align: middle;
+}
+.btn-accion.entregar svg,
+.btn-accion.registrar svg {
+  stroke: #22c55e; /* Color verde para el check */
+}
+
+/* ---------------------------- Paginación ---------------------------- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  font-size: 12.5px;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+}
+.pagination button {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  margin-left: 6px;
+  font-size: 13px;
+  transition: background 0.15s ease;
+}
+.pagination button:hover:not(:disabled) {
+  background: var(--paper);
+}
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   MODALES (estado / detalle / registrar)
+   Esta sección faltaba por completo: sin ella, la clase "open"
+   que agrega el JS no tiene ningún efecto visual.
+   ============================================================ */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 20, 0.5);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+.modal-overlay.open {
+  display: flex;
+}
+.modal-card {
+  background: var(--surface, #fff);
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  overflow-y: auto;
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+  animation: modal-in 0.15s ease-out;
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.modal-head h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.modal-close {
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.modal-close:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+.modal-body {
+  padding: 18px 20px;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+}
+
+/* Modal de estado */
+.estado-modal {
+  max-width: 420px;
+}
+.estado-modal-sub {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.estado-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.estado-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.estado-option:hover {
+  border-color: var(--brand);
+}
+.estado-option.selected {
+  border-color: var(--brand);
+  background: var(--brand-2-soft);
+}
+.estado-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.estado-dot.pending { background: var(--pending); }
+.estado-dot.preparing { background: #E3A008; }
+.estado-dot.out { background: #1A5276; }
+.estado-dot.delivered { background: var(--ok); }
+.estado-dot.canceled { background: var(--danger); }
+
+/* Modal de detalle */
+.detalle-modal {
+  max-width: 600px;
+}
+.detalle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.detalle-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+.detalle-items {
+  margin-top: 8px;
+}
+.detalle-items h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.detalle-items ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.detalle-items ul li {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+}
+.detalle-totales {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.detalle-totales div {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+.detalle-totales .total {
+  font-weight: 700;
+  font-size: 17px;
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+  margin-top: 4px;
+}
+
+/* Modal de registrar pedido */
+.registrar-modal {
+  max-width: 500px;
+}
+
+/* Botones genéricos usados dentro de los modales,
+   por si no estuvieran definidos en dashboard.css */
+.btn {
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface, #fff);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn:hover {
+  background: var(--paper);
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.btn-success {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #fff;
+}
+.btn-success:hover {
+  background: #16a34a;
+  border-color: #16a34a;
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+  .panel-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .panel-toolbar .search-box {
+    max-width: 100%;
+  }
+  .panel-toolbar .filters {
+    flex-wrap: wrap;
+  }
+  .modal-card {
+    max-width: 100%;
+  }
+}

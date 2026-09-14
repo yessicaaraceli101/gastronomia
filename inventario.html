@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gastro — Inventario</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/dashboard.css" />
+<link rel="stylesheet" href="assets/css/pedidos.css" />
+<!-- NUEVO: CSS específico para inventario -->
+<link rel="stylesheet" href="assets/css/inventario.css" />
+<style>
+  /* ===== Modal Nuevo/Editar Insumo — versión ampliada ===== */
+  #nuevo-insumo-modal .modal-card {
+    max-width: 820px !important;
+    width: 90vw !important;
+  }
+  #nuevo-insumo-modal .modal-head h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+  }
+  #nuevo-insumo-modal .modal-body {
+    padding: 32px 40px;
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px 24px;
+  }
+  .form-grid.cols-1 { grid-template-columns: 1fr; }
+  .form-section {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 22px;
+  }
+  .form-section:last-of-type { margin-bottom: 0; }
+  .form-section-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 14px;
+  }
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4b5563;
+    margin-bottom: 6px;
+  }
+  .field small {
+    display: block;
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 4px;
+  }
+  .field input,
+  .field select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .field input:focus,
+  .field select:focus {
+    outline: none;
+    border-color: #d97706;
+    box-shadow: 0 0 0 3px rgba(217,119,6,0.12);
+  }
+  .costo-preview {
+    margin-top: 14px;
+    padding: 12px 16px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #78350f;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .costo-preview strong { font-size: 16px; }
+  @media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ============================================================
+     Tabla de Inventario — mismo estilo que la tabla de Clientes
+     ============================================================ */
+  #inventario-table thead th {
+    text-align: left;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted, #6b7280);
+    font-weight: 600;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--line, #e5e7eb);
+    background: var(--paper, #f6f5f2);
+  }
+  #inventario-table thead th.text-center { text-align: center; }
+  #inventario-table thead th.col-actions { text-align: right; }
+
+  #inventario-table tbody td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line, #e5e7eb);
+    vertical-align: middle;
+    font-size: 13.5px;
+  }
+  #inventario-table tbody tr:last-child td { border-bottom: none; }
+  #inventario-table tbody tr:hover { background: rgba(22, 33, 29, 0.02); }
+  #inventario-table tbody td.text-center { text-align: center; }
+
+  /* Columna ID */
+  #inventario-table td.id-cell {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--muted, #9ca3af);
+    white-space: nowrap;
+  }
+
+  /* Columna de acciones */
+  #inventario-table td.col-actions {
+    text-align: right;
+    width: 1%;
+    white-space: nowrap;
+  }
+  .row-actions {
+    display: inline-flex;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+  .action-btn {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--line, #e5e7eb);
+    background: #fff;
+    color: var(--muted, #6b7280);
+    border-radius: var(--radius-sm, 8px);
+    cursor: pointer;
+    transition: border-color .15s ease, color .15s ease, background .15s ease;
+  }
+  .action-btn svg { width: 14px; height: 14px; }
+  .action-btn:hover {
+    border-color: var(--brand, #f59e0b);
+    color: var(--brand, #f59e0b);
+    background: var(--paper, #f6f5f2);
+  }
+  .action-btn-danger:hover {
+    border-color: #dc2626;
+    color: #dc2626;
+    background: #fef2f2;
+  }
+
+  .empty-state {
+    padding: 44px 20px;
+    text-align: center;
+    color: var(--muted, #6b7280);
+    font-size: 13px;
+  }
+
+  /* Modal de confirmación de eliminación */
+  .confirm-card {
+    max-width: 380px;
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px 30px;
+    text-align: center;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+  }
+  .confirm-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid #dc2626;
+    color: #dc2626;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 14px;
+  }
+  .confirm-icon svg { width: 22px; height: 22px; }
+  .confirm-card h3 { margin: 0 0 4px; font-size: 20px; }
+  .confirm-card p { margin: 0 0 24px; color: var(--muted, #6b7280); }
+  .confirm-actions { display: flex; gap: 10px; }
+  .confirm-actions .btn { flex: 1; justify-content: center; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">G</div>
+      <div>
+        <div class="brand-name">Gastro</div>
+        <div class="brand-sub">Panel administrativo</div>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="general">
+      <div class="nav-label">GENERAL</div>
+      <div class="nav-group-items">
+        <a class="nav-item" href="dashboard.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg><span>Panel principal</span></a>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="operacion">
+      <button type="button" class="nav-group-header">
+        <span class="nav-label">OPERACIÓN</span>
+        <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="nav-group-items">
+        <a class="nav-item" href="mesas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="4" rx="1"/><path d="M5 11v9M19 11v9M2 20h20"/></svg><span>Mesas</span></a>
+        <a class="nav-item" href="pedidos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v19l-3-2-3 2-3-2-3 2V2z"/><path d="M9 8h6M9 12h6"/></svg><span>Pedidos</span></a>
+        <a class="nav-item" href="menu.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v7a2 2 0 0 0 2 2 2 2 0 0 0 2-2V2M8 11v11M18 2c-2 2-2 6-2 8 0 1 .5 2 2 2s2-1 2-2c0-2 0-6-2-8zM18 13v9"/></svg><span>Menú</span></a>
+        <a class="nav-item" href="reservas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Reservas</span></a>
+        <a class="nav-item" href="clientes.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Clientes</span></a>
+        <a class="nav-item" href="proveedores.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Proveedores</span></a>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="administracion">
+      <button type="button" class="nav-group-header">
+        <span class="nav-label">ADMINISTRACIÓN</span>
+        <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="nav-group-items">
+        <a class="nav-item" href="facturacion.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg><span>Facturación</span></a>
+        <a class="nav-item active" href="inventario.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8L12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg><span>Inventario</span></a>
+        <a class="nav-item" href="reportes.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg><span>Reportes</span></a>
+        <a class="nav-item" href="usuarios.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Usuarios</span></a>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="finanzas">
+      <button type="button" class="nav-group-header">
+        <span class="nav-label">FINANZAS</span>
+        <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="nav-group-items">
+        <a class="nav-item" href="caja.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7H5a2 2 0 0 1-2-2 2 2 0 0 1 2-2h13v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-8H5"/><circle cx="17" cy="15" r="1"/></svg><span>Caja</span></a>
+        <a class="nav-item" href="pagos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/></svg><span>Cuentas por pagar</span></a>
+        <a class="nav-item" href="pagos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span>Formas de pago</span></a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Inventario</h1>
+        <div class="date" id="branch-date">Control de stock e insumos</div>
+      </div>
+      <div class="topbar-right">
+
+        <!-- Selector de empresa / sucursal (multiempresa) — NUEVO en esta
+             página: antes no existía este bloque en el HTML, así que
+             auth-check.js no tenía dónde pintar el selector real. -->
+        <div class="company-switch" id="company-switch">
+          <button type="button" class="company-switch-btn" id="company-switch-btn">
+            <div class="co-mark">–</div>
+            <div class="co-text">
+              <div class="co-name">—</div>
+              <div class="co-branch">—</div>
+            </div>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="company-menu">
+            <div id="company-menu-list"></div>
+            <div class="company-menu-footer">
+              <button type="button" class="company-add" id="company-add-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                Agregar empresa
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="seg" id="currency-toggle">
+          <button class="active" data-currency="Gs">Gs</button>
+          <button data-currency="US$">US$</button>
+          <button data-currency="R$">R$</button>
+        </div>
+        <div class="user-chip">
+          <div class="avatar" id="user-avatar">—</div>
+          <div>
+            <div class="u-name" id="user-name">—</div>
+            <div class="u-role" id="user-role">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="content">
+
+      <div class="panel">
+        <!-- CABECERA DEL PANEL (Título y botón) -->
+        <div class="panel-head">
+          <h2>Lista de Insumos</h2>
+          <button class="btn btn-primary" id="btn-nuevo-insumo" type="button">+ Nuevo insumo</button>
+        </div>
+
+        <!-- BARRA DE HERRAMIENTAS (Búsqueda y Filtros) -->
+        <div class="panel-toolbar">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input type="text" id="insumo-search" placeholder="Buscar insumo...">
+          </div>
+          <div class="filters">
+            <select id="filter-categoria" class="chip-select">
+              <option value="all">Todas las categorías</option>
+              <option value="Carnes">Carnes</option>
+              <option value="Verduras">Verduras</option>
+              <option value="Bebidas">Bebidas</option>
+              <option value="Lácteos">Lácteos</option>
+              <option value="Otros">Otros</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table id="inventario-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Insumo</th>
+                <th>Categoría</th>
+                <th>Proveedor</th>
+                <th class="text-center">Stock</th>
+                <th>Unidad</th>
+                <th>Costo/unidad</th>
+                <th class="text-center">Mínimo</th>
+                <th>Estado</th>
+                <th class="col-actions">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="inventario-body">
+              <!-- Se carga con JS -->
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span id="page-label">Cargando datos...</span>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- =========================== -->
+<!--   MODAL: NUEVO / EDITAR INSUMO -->
+<!-- =========================== -->
+<div class="modal-overlay" id="nuevo-insumo-modal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="insumo-modal-title">Nuevo Insumo</h3>
+      <button class="modal-close" id="cierre-nuevo-insumo" type="button">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-nuevo-insumo">
+
+        <div class="form-section">
+          <div class="form-section-title">Datos generales</div>
+          <div class="form-grid cols-1" style="margin-bottom:18px;">
+            <div class="field">
+              <label>Nombre del insumo</label>
+              <input type="text" id="input-nombre" required placeholder="Ej: Vacío de novillo">
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Categoría</label>
+              <select id="input-categoria">
+                <option>Carnes</option><option>Verduras</option><option>Bebidas</option><option>Lácteos</option><option>Otros</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Proveedor</label>
+              <input type="text" id="input-proveedor" placeholder="Ej: Distribuidora Sur">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Unidades y costo</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Unidad de uso</label>
+              <input type="text" id="input-unidad" value="kg" required placeholder="Ej: kg, L, unidad">
+            </div>
+            <div class="field">
+              <label>Unidad de compra</label>
+              <input type="text" id="input-unidad-compra" placeholder="Ej: cajón, bolsa">
+            </div>
+            <div class="field">
+              <label>Equivalencia</label>
+              <input type="number" id="input-factor-conversion" value="1" min="0.01" step="0.01">
+              <small>Cuántas unidades de uso trae 1 unidad de compra</small>
+            </div>
+            <div class="field">
+              <label>Costo por unidad de compra</label>
+              <input type="number" id="input-costo-compra" value="0" min="0" step="0.01">
+            </div>
+          </div>
+          <div class="costo-preview">
+            <span>Costo por unidad de uso</span>
+            <strong id="preview-costo-unitario">Gs. 0</strong>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Stock</div>
+          <div class="form-grid">
+            <div class="field">
+              <label id="label-input-stock">Stock inicial</label>
+              <input type="number" id="input-stock" value="0" min="0" required>
+            </div>
+            <div class="field">
+              <label>Stock mínimo de alerta</label>
+              <input type="number" id="input-minimo" value="10" min="0" required>
+            </div>
+          </div>
+        </div>
+
+      </form>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="cancelar-nuevo-insumo" type="button">Cancelar</button>
+      <button class="btn btn-success" id="guardar-nuevo-insumo" type="button">Guardar insumo</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================== -->
+<!--   MODAL: COMPRAR INSUMO    -->
+<!-- =========================== -->
+<div class="modal-overlay" id="comprar-insumo-modal">
+  <div class="modal-card" style="max-width: 450px;">
+    <div class="modal-head">
+      <h3>Registrar Compra</h3>
+      <button class="modal-close" id="cierre-comprar-insumo" type="button">&times;</button>
+    </div>
+    <div class="modal-body">
+      <!-- Tarjeta de información -->
+      <div class="info-card" style="background: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e5e7eb;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+          <span style="color: #6b7280;">Insumo:</span>
+          <span style="font-weight: 600;" id="comprar-nombre">-</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+          <span style="color: #6b7280;">Categoría:</span>
+          <span id="comprar-categoria">-</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+          <span style="color: #6b7280;">Proveedor:</span>
+          <span id="comprar-proveedor">-</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-top: 1px solid #e5e7eb; padding-top: 10px; margin-top: 5px;">
+          <span style="color: #6b7280;">Stock actual:</span>
+          <span style="font-weight: 600;" id="comprar-stock-actual">0</span>
+        </div>
+      </div>
+
+      <!-- Control de Cantidad -->
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">¿Cuánto estás comprando?</label>
+        <div style="display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap;">
+          <button type="button" class="btn-inc" data-val="1">+1</button>
+          <button type="button" class="btn-inc" data-val="5">+5</button>
+          <button type="button" class="btn-inc" data-val="10">+10</button>
+          <button type="button" class="btn-inc" data-val="50">+50</button>
+        </div>
+
+        <input type="number" id="input-cantidad-comprar" value="0" min="0" />
+      </div>
+
+      <!-- Resultado Final -->
+      <div class="result-card" style="background: #ecfdf5; padding: 15px; border-radius: 8px; border: 1px solid #a7f3d0; text-align: center;">
+        <span style="color: #6b7280; display: block; font-size: 14px;">Al registrar esta compra tendrás:</span>
+        <span id="comprar-stock-final">0</span>
+        <span style="color: #059669; font-weight: 500;" id="comprar-unidad"></span>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="cancelar-comprar-insumo" type="button">Cancelar</button>
+      <button class="btn btn-success" id="guardar-comprar-insumo" type="button" disabled>Registrar compra</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================== -->
+<!--   MODAL: CONFIRMAR ELIMINACIÓN -->
+<!-- =========================== -->
+<div class="modal-overlay" id="confirm-eliminar-insumo-modal">
+  <div class="confirm-card">
+    <div class="confirm-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L14.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+    </div>
+    <h3 id="confirm-eliminar-title">¿Eliminar este insumo?</h3>
+    <p id="confirm-eliminar-text">Esta acción no se puede deshacer.</p>
+    <div class="confirm-actions">
+      <button type="button" class="btn" id="confirm-eliminar-cancel">Cancelar</button>
+      <button type="button" class="btn btn-danger" id="confirm-eliminar-accept">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================== -->
+<!-- FIREBASE (Auth + Firestore, igual que en dashboard.html)   -->
+<!-- ========================================================== -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAttBvD83gI770HibucrqDVzMuqLcYONNY",
+    authDomain: "gastro-7c5ad.firebaseapp.com",
+    projectId: "gastro-7c5ad",
+    storageBucket: "gastro-7c5ad.firebasestorage.app",
+    messagingSenderId: "990505475007",
+    appId: "1:990505475007:web:09a5066610de6c7e81df0a"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+</script>
+
+<!-- Acordeón del sidebar: mismo comportamiento que en el resto de las páginas. -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.nav-group[data-group]').forEach(function (group) {
+      const header = group.querySelector('.nav-group-header');
+      const items = group.querySelector('.nav-group-items');
+      if (!header || !items) return;
+
+      const key = group.getAttribute('data-group');
+      let collapsed = localStorage.getItem('sidebar_' + key) === 'true';
+      if (collapsed) {
+        group.classList.add('collapsed');
+        items.style.maxHeight = '0px';
+      }
+
+      header.addEventListener('click', function () {
+        const isCollapsed = group.classList.toggle('collapsed');
+        items.style.maxHeight = isCollapsed ? '0px' : items.scrollHeight + 'px';
+        localStorage.setItem('sidebar_' + key, isCollapsed);
+      });
+    });
+  });
+</script>
+
+
+<script src="assets/js/auth-check.js"></script>
+
+<!-- Tu archivo JS (debe ir DESPUÉS de firebase y de auth-check.js) -->
+<script src="assets/js/inventario.js"></script>
+</body>
+</html>

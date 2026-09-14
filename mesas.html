@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gastro — Mapa de mesas</title>
+<link rel="stylesheet" href="assets/css/dashboard.css">
+<link rel="stylesheet" href="assets/css/mesas.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">G</div>
+      <div>
+        <div class="brand-name">Gastro</div>
+        <div class="brand-sub">Panel administrativo</div>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="general">
+      <div class="nav-label">GENERAL</div>
+      <div class="nav-group-items">
+        <a class="nav-item" href="dashboard.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg><span>Panel principal</span></a>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="operacion">
+      <button type="button" class="nav-group-header">
+        <span class="nav-label">OPERACIÓN</span>
+        <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="nav-group-items">
+        <a class="nav-item active" href="mesas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="4" rx="1"/><path d="M5 11v9M19 11v9M2 20h20"/></svg><span>Mesas</span></a>
+        <a class="nav-item" href="pedidos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v19l-3-2-3 2-3-2-3 2V2z"/><path d="M9 8h6M9 12h6"/></svg><span>Pedidos</span></a>
+        <a class="nav-item" href="menu.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v7a2 2 0 0 0 2 2 2 2 0 0 0 2-2V2M8 11v11M18 2c-2 2-2 6-2 8 0 1 .5 2 2 2s2-1 2-2c0-2 0-6-2-8zM18 13v9"/></svg><span>Menú</span></a>
+        <a class="nav-item" href="reservas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Reservas</span></a>
+        <a class="nav-item" href="clientes.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Clientes</span></a>
+        <a class="nav-item" href="proveedores.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Proveedores</span></a>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="administracion">
+      <button type="button" class="nav-group-header">
+        <span class="nav-label">ADMINISTRACIÓN</span>
+        <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="nav-group-items">
+        <a class="nav-item" href="facturacion.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg><span>Facturación</span></a>
+        <a class="nav-item" href="inventario.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8L12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg><span>Inventario</span></a>
+        <a class="nav-item" href="reportes.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg><span>Reportes</span></a>
+        <a class="nav-item" href="usuarios.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Usuarios</span></a>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="finanzas">
+      <button type="button" class="nav-group-header">
+        <span class="nav-label">FINANZAS</span>
+        <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="nav-group-items">
+        <a class="nav-item" href="caja.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7H5a2 2 0 0 1-2-2 2 2 0 0 1 2-2h13v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-8H5"/><circle cx="17" cy="15" r="1"/></svg><span>Caja</span></a>
+        <a class="nav-item" href="cuentas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/></svg><span>Cuentas por pagar</span></a>
+        <a class="nav-item" href="pagos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span>Formas de pago</span></a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Mapa de mesas</h1>
+        <div class="date" id="branch-date">—</div>
+      </div>
+      <div class="topbar-right">
+
+        <!-- Selector de empresa / sucursal (lo llena auth-check.js) -->
+        <div class="company-switch" id="company-switch">
+          <button type="button" class="company-switch-btn" id="company-switch-btn">
+            <div class="co-mark">–</div>
+            <div class="co-text">
+              <div class="co-name">—</div>
+              <div class="co-branch">—</div>
+            </div>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="company-menu">
+            <div id="company-menu-list"></div>
+            <div class="company-menu-footer">
+              <button type="button" class="company-add" id="company-add-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                Agregar empresa
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="user-chip">
+          <div class="avatar" id="user-avatar">—</div>
+          <div>
+            <div class="u-name" id="user-name">—</div>
+            <div class="u-role" id="user-role">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="tables-toolbar">
+
+          <div class="legend">
+              <span><i class="dot-free"></i>Libre <span class="legend-count" id="count-free">—</span></span>
+              <span><i class="dot-occupied"></i>Ocupada <span class="legend-count" id="count-occupied">—</span></span>
+              <span><i class="dot-reserved"></i>Reservada <span class="legend-count" id="count-reserved">—</span></span>
+          </div>
+
+          <div class="filter-bar">
+              <button type="button" class="filter-tab active" data-filter="all">Todas <span class="f-count">—</span></button>
+              <button type="button" class="filter-tab" data-filter="free">Libres <span class="f-count">—</span></button>
+              <button type="button" class="filter-tab" data-filter="occupied">Ocupadas <span class="f-count">—</span></button>
+              <button type="button" class="filter-tab" data-filter="reserved">Reservadas <span class="f-count">—</span></button>
+          </div>
+
+      </div>
+
+      <div id="dedupe-banner" style="display:none;margin:0 0 14px 0;padding:10px 14px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:8px;font-size:13px;align-items:center;justify-content:space-between;gap:10px;">
+        <span id="dedupe-text">Se detectaron mesas duplicadas.</span>
+        <button type="button" id="dedupe-btn" style="background:#dc2626;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">Corregir duplicados</button>
+      </div>
+
+      <div class="panel panel-mesas">
+          <div class="grid-cards" id="tables-grid"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal: editar estado de mesa -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="modal-title">Mesa</h3>
+      <button type="button" class="modal-close" id="modal-close" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-sub" id="modal-sub">—</div>
+
+    <div class="modal-body">
+      <div class="modal-col">
+        <div class="detail-block" id="detail-block"></div>
+
+        <div class="modal-field">
+          <label>Estado</label>
+          <div class="status-options">
+            <button type="button" class="status-option" data-status="free"><i></i>Libre</button>
+            <button type="button" class="status-option" data-status="occupied"><i></i>Ocupada</button>
+            <button type="button" class="status-option" data-status="reserved"><i></i>Reservada</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-col">
+        <div class="modal-field">
+          <label for="modal-client">Nombre del cliente</label>
+          <input type="text" id="modal-client" placeholder="Ej: Ana Ovelar">
+        </div>
+
+        <div class="modal-field">
+          <label for="modal-phone">Teléfono</label>
+          <input type="text" id="modal-phone" placeholder="Ej: 0981 234 567">
+        </div>
+
+        <div class="modal-field">
+          <label for="modal-capacity">Capacidad (personas)</label>
+          <input type="number" id="modal-capacity" min="1" max="20">
+        </div>
+
+        <div class="modal-field">
+          <label for="modal-note">Nota (hora de reserva, tiempo en mesa, etc.)</label>
+          <input type="text" id="modal-note" placeholder="Ej: Reserva 20:30">
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-danger" id="modal-cancel">Cancelar</button>
+        <button type="button" class="btn btn-success" id="modal-save">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: confirmar cancelación -->
+<div class="modal-overlay" id="confirm-overlay">
+  <div class="confirm-card">
+    <div class="confirm-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L14.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+    </div>
+    <h3>¿Descartar los cambios?</h3>
+    <p>Si cancelás ahora, los cambios que hiciste en esta mesa no se van a guardar.</p>
+    <div class="confirm-actions">
+      <button type="button" class="btn" id="confirm-keep">Seguir editando</button>
+      <button type="button" class="btn btn-danger" id="confirm-discard">Sí, cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================== -->
+<!-- SCRIPTS DE FIREBASE                                          -->
+<!-- ========================================================== -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAttBvD83gI770HibucrqDVzMuqLcYONNY",
+    authDomain: "gastro-7c5ad.firebaseapp.com",
+    projectId: "gastro-7c5ad",
+    storageBucket: "gastro-7c5ad.firebasestorage.app",
+    messagingSenderId: "990505475007",
+    appId: "1:990505475007:web:09a5066610de6c7e81df0a"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  console.log("Firebase inicializado correctamente desde mesas.html");
+</script>
+
+<!-- 🔒 Sesión + empresa/sucursal real (multiempresa) -->
+<script src="assets/js/auth-check.js"></script>
+
+<!-- ========================================================== -->
+<!-- TODA LA LÓGICA DE LA PÁGINA                                 -->
+<!-- Incluye auto-siembra: si la colección "mesas" está vacía   -->
+<!-- para la empresa activa, crea 8 mesas automáticamente.      -->
+<!-- ========================================================== -->
+<script>
+(function () {
+  "use strict";
+
+  const db = firebase.firestore();
+
+  const STATUS_LABEL = { free: "Libre", occupied: "Ocupada", reserved: "Reservada" };
+
+  const CHAIR_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3"/><path d="M7 16v5M17 16v5M5 9h14"/></svg>`;
+
+  // Antes esto era un array EMPRESAS fijo (mock). Ahora empresaId se llena
+  // recién cuando llega el evento "sesionLista" que dispara auth-check.js
+  // con los datos reales de Firestore.
+  let empresaId = null;
+  let mesas = [];
+  let mesasFiltradas = [];
+  let openTableId = null;
+  let state = { filter: "all" };
+
+  /* ============================================================
+     AUTO-SIEMBRA: si no hay mesas para la empresa, se crean 8
+     ============================================================ */
+  async function sembrarMesasSiHaceFalta() {
+    try {
+      const snapshot = await db.collection('mesas')
+        .where('empresaId', '==', empresaId)
+        .limit(1)
+        .get();
+
+      if (!snapshot.empty) return; // ya hay mesas, no hacer nada
+
+      console.log(`No hay mesas para "${empresaId}". Creando mesas por defecto...`);
+      const cantidad = 8;
+      const capacidadDefault = 4;
+      const batch = db.batch();
+
+      for (let i = 1; i <= cantidad; i++) {
+        const ref = db.collection('mesas').doc();
+        batch.set(ref, {
+          empresaId: empresaId,
+          numero_mesa: `mesa ${i}`,
+          capacidad: capacidadDefault,
+          status: "free",
+          cliente: "",
+          telefono: "",
+          nota: "",
+          personas: null
+        });
+      }
+
+      await batch.commit();
+      console.log(`✅ Se crearon ${cantidad} mesas para "${empresaId}".`);
+    } catch (error) {
+      console.error("Error al auto-sembrar mesas:", error);
+    }
+  }
+
+  /* ============================================================
+     LEER Y ESCRIBIR EN FIRESTORE
+     ============================================================ */
+  function normalizarNombre(str) {
+    return (str || "").trim().toLowerCase();
+  }
+
+  async function cargarReservasActivas() {
+    try {
+      const snapshot = await db.collection('reservas')
+        .where('empresaId', '==', empresaId)
+        .get();
+      const activas = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.estado !== 'cancel') {
+          activas.push({ id: doc.id, ...data });
+        }
+      });
+      return activas;
+    } catch (error) {
+      console.error("Error al cargar reservas activas:", error);
+      return [];
+    }
+  }
+
+  async function cargarMesas() {
+    try {
+      await sembrarMesasSiHaceFalta();
+
+      const [snapshotMesas, reservasActivas] = await Promise.all([
+        db.collection('mesas').where('empresaId', '==', empresaId).get(),
+        cargarReservasActivas()
+      ]);
+
+      const reservasPorMesa = {};
+      reservasActivas.forEach(r => {
+        const key = normalizarNombre(r.mesa);
+        if (!key) return;
+        if (!reservasPorMesa[key]) reservasPorMesa[key] = [];
+        reservasPorMesa[key].push(r);
+      });
+      Object.keys(reservasPorMesa).forEach(key => {
+        reservasPorMesa[key].sort((a, b) =>
+          new Date(`${a.fecha || ''} ${a.hora || ''}`) - new Date(`${b.fecha || ''} ${b.hora || ''}`)
+        );
+      });
+
+      const mesasPorNumero = {};
+      snapshotMesas.forEach(doc => {
+        const data = doc.data();
+        const key = normalizarNombre(data.numero_mesa);
+        if (!mesasPorNumero[key]) {
+          mesasPorNumero[key] = { id: doc.id, ...data, _duplicateIds: [] };
+        } else {
+          mesasPorNumero[key]._duplicateIds.push(doc.id);
+        }
+      });
+
+      const todas = Object.values(mesasPorNumero).map(mesaBase => {
+        const key = normalizarNombre(mesaBase.numero_mesa);
+        const reservasMesa = reservasPorMesa[key];
+        let mesa = { ...mesaBase };
+
+        if (reservasMesa && reservasMesa.length) {
+          const proxima = reservasMesa[0];
+          mesa = {
+            ...mesa,
+            status: "reserved",
+            cliente: proxima.cliente || mesa.cliente || "",
+            telefono: proxima.telefono || mesa.telefono || "",
+            personas: proxima.personas || mesa.personas || mesa.capacidad,
+            nota: `Reserva ${proxima.hora || ""} · ${proxima.fecha || ""}`.trim(),
+            _fromReserva: true,
+            _reservaId: proxima.id,
+            _reservaEstado: proxima.estado,
+            _todasReservas: reservasMesa
+          };
+        }
+
+        return mesa;
+      });
+
+      return todas;
+    } catch (error) {
+      console.error("Error al cargar mesas:", error);
+      return [];
+    }
+  }
+
+  async function actualizarMesa(id, datos) {
+    try {
+      await db.collection('mesas').doc(id).update(datos);
+      console.log(`Mesa ${id} actualizada correctamente.`);
+    } catch (error) {
+      console.error("Error al actualizar la mesa:", error);
+      throw error;
+    }
+  }
+
+  async function corregirDuplicados() {
+    const btn = document.getElementById("dedupe-btn");
+    btn.disabled = true;
+    btn.textContent = "Corrigiendo...";
+    try {
+      const idsAEliminar = [];
+      mesas.forEach(m => {
+        if (m._duplicateIds && m._duplicateIds.length) {
+          idsAEliminar.push(...m._duplicateIds);
+        }
+      });
+      if (!idsAEliminar.length) return;
+
+      const batch = db.batch();
+      idsAEliminar.forEach(id => batch.delete(db.collection('mesas').doc(id)));
+      await batch.commit();
+      console.log(`✅ Se eliminaron ${idsAEliminar.length} mesas duplicadas.`);
+      await renderTodo();
+    } catch (error) {
+      console.error("Error al corregir duplicados:", error);
+      alert("No se pudieron corregir los duplicados. Revisá la consola.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Corregir duplicados";
+    }
+  }
+
+  function renderDedupeBanner() {
+    const totalDuplicados = mesas.reduce((acc, m) => acc + (m._duplicateIds ? m._duplicateIds.length : 0), 0);
+    const banner = document.getElementById("dedupe-banner");
+    const text = document.getElementById("dedupe-text");
+    if (totalDuplicados > 0) {
+      text.textContent = `Se detectaron ${totalDuplicados} mesa(s) duplicada(s) en la base de datos.`;
+      banner.style.display = "flex";
+    } else {
+      banner.style.display = "none";
+    }
+  }
+
+  function todayLabel() {
+    const d = new Date();
+    const time = d.toLocaleTimeString("es-PY", { hour: "2-digit", minute: "2-digit" });
+    return `Estado en tiempo real del salón · actualizado ${time}`;
+  }
+
+  /* ============================================================
+     RENDERIZADO DE LA INTERFAZ
+     ------------------------------------------------------------
+     El selector de empresa/sucursal y el chip de usuario ya los
+     pinta auth-check.js — acá solo actualizamos la fecha/hora.
+     ============================================================ */
+  function renderHeader() {
+    document.getElementById("branch-date").textContent = todayLabel();
+  }
+
+  function countsFor(tables) {
+    return {
+      all: tables.length,
+      free: tables.filter((t) => t.status === "free").length,
+      occupied: tables.filter((t) => t.status === "occupied").length,
+      reserved: tables.filter((t) => t.status === "reserved").length
+    };
+  }
+
+  function renderLegendAndFilters() {
+    const counts = countsFor(mesas);
+    document.getElementById("count-free").textContent = counts.free;
+    document.getElementById("count-occupied").textContent = counts.occupied;
+    document.getElementById("count-reserved").textContent = counts.reserved;
+
+    document.querySelectorAll(".filter-tab").forEach((tab) => {
+      const key = tab.getAttribute("data-filter");
+      tab.classList.toggle("active", state.filter === key);
+      const countSpan = tab.querySelector(".f-count");
+      if (countSpan) countSpan.textContent = counts[key];
+    });
+  }
+
+  function extraerNumeroMesa(nombre) {
+    const match = (nombre || "").match(/(\d+)/);
+    return match ? parseInt(match[1], 10) : 9999;
+  }
+
+  function ordenarMesas(lista) {
+    return [...lista].sort((a, b) => {
+      const numA = extraerNumeroMesa(a.numero_mesa);
+      const numB = extraerNumeroMesa(b.numero_mesa);
+      if (numA !== numB) return numA - numB;
+      return (a.numero_mesa || "").localeCompare(b.numero_mesa || "");
+    });
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById("tables-grid");
+    grid.innerHTML = "";
+
+    mesasFiltradas = mesas.filter((t) => state.filter === "all" || t.status === state.filter);
+    mesasFiltradas = ordenarMesas(mesasFiltradas);
+
+    if (!mesasFiltradas.length) {
+      grid.innerHTML = `<div class="empty-state">No hay mesas en este estado por ahora.</div>`;
+      return;
+    }
+
+    mesasFiltradas.forEach((t) => {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = `table-card ${t.status}`;
+
+      const nombreMesa = t.numero_mesa || `Mesa ${t.id.slice(0,4)}`;
+      let nombreCliente = t.cliente || `Libre · ${t.capacidad || 2} personas`;
+      const extras = (t._todasReservas && t._todasReservas.length > 1) ? t._todasReservas.length - 1 : 0;
+      if (extras > 0) nombreCliente += ` (+${extras} más)`;
+
+      card.innerHTML = `
+        <div class="t-top">
+          <div class="t-icon">${CHAIR_ICON}</div>
+          <div class="t-state-dot">${STATUS_LABEL[t.status]}</div>
+        </div>
+        <div>
+          <div class="t-num">${nombreMesa}</div>
+          <div class="t-meta">${nombreCliente}</div>
+        </div>
+      `;
+      card.addEventListener("click", () => openModal(t.id));
+      grid.appendChild(card);
+    });
+  }
+
+  async function renderTodo() {
+    if (!empresaId) return; // todavía no llegó la sesión
+    mesas = await cargarMesas();
+    renderHeader();
+    renderLegendAndFilters();
+    renderGrid();
+    renderDedupeBanner();
+  }
+
+  /* ============================================================
+     MODAL DE EDICIÓN (Para cambiar manualmente el estado)
+     ============================================================ */
+  const PERSON_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+  const PHONE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg>`;
+  const GROUP_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
+  const CLOCK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`;
+
+  function openModal(tableId) {
+    openTableId = tableId;
+    const mesa = mesas.find((t) => t.id === tableId);
+    if (!mesa) return;
+
+    // Antes usaba getEmpresa() del array mock — ahora usa la sesión real.
+    const sesion = window.sesion || {};
+
+    document.getElementById("modal-title").textContent = `Mesa ${mesa.numero_mesa || tableId}`;
+    document.getElementById("modal-sub").textContent = `${sesion.empresaNombre || ""} · ${sesion.sucursalNombre || ""}`;
+
+    const detailBlock = document.getElementById("detail-block");
+    if (mesa.status === "free" || !mesa.cliente) {
+      detailBlock.innerHTML = `<div class="detail-empty">Esta mesa está libre, todavía no hay una reserva u ocupante asociado.</div>`;
+    } else {
+      const statusText = mesa.status === "reserved" ? "Reservó" : "Sentado en mesa";
+      let aviso = "";
+      if (mesa._fromReserva) {
+        const estadoReserva = mesa._reservaEstado === "pending" ? "Pendiente de confirmar" : "Confirmada";
+        aviso = `<div class="detail-empty" style="margin-bottom:10px;background:#fef3c7;color:#92400e;padding:8px 10px;border-radius:6px;font-size:13px;">
+          Esta mesa está vinculada a una reserva (${estadoReserva}). Los datos se cargan automáticamente desde <strong>Reservas</strong>.
+        </div>`;
+      }
+
+      let listaReservas = "";
+      if (mesa._todasReservas && mesa._todasReservas.length > 1) {
+        const items = mesa._todasReservas.map((r, idx) => `
+          <div style="padding:8px 10px;border:1px solid #e2e8f0;border-radius:6px;margin-top:6px;font-size:13px;">
+            <strong>${idx === 0 ? "🔸 Próxima" : "•"} ${r.cliente || "—"}</strong><br>
+            ${r.fecha || "—"} · ${r.hora || "—"} · ${r.personas || 1} persona(s)
+            ${r.estado === "pending" ? " · <span style=\"color:#92400e\">Pendiente</span>" : " · <span style=\"color:#166534\">Confirmada</span>"}
+          </div>
+        `).join("");
+        listaReservas = `
+          <div style="margin-top:10px;">
+            <div class="detail-label" style="margin-bottom:4px;">Todas las reservas de esta mesa (${mesa._todasReservas.length})</div>
+            ${items}
+          </div>
+        `;
+      }
+
+      detailBlock.innerHTML = `
+        ${aviso}
+        <div class="detail-row">${PERSON_ICON}
+          <div><div class="detail-label">${statusText}</div><div class="detail-value">${mesa.cliente}</div></div>
+        </div>
+        <div class="detail-row">${PHONE_ICON}
+          <div><div class="detail-label">Teléfono</div><div class="detail-value">${mesa.telefono || "No registrado"}</div></div>
+        </div>
+        <div class="detail-row">${GROUP_ICON}
+          <div><div class="detail-label">Personas</div><div class="detail-value">${mesa.personas || mesa.capacidad}</div></div>
+        </div>
+        <div class="detail-row">${CLOCK_ICON}
+          <div><div class="detail-label">${mesa.status === "reserved" ? "Hora de reserva" : "Tiempo en mesa"}</div><div class="detail-value">${mesa.nota || "—"}</div></div>
+        </div>
+        ${listaReservas}
+      `;
+    }
+
+    document.getElementById("modal-client").value = mesa.cliente || "";
+    document.getElementById("modal-phone").value = mesa.telefono || "";
+    document.getElementById("modal-capacity").value = mesa.capacidad || 2;
+    document.getElementById("modal-note").value = mesa.nota || "";
+
+    document.querySelectorAll(".status-option").forEach((opt) => {
+      opt.classList.toggle("active", opt.getAttribute("data-status") === mesa.status);
+    });
+
+    const camposEditables = ["modal-client", "modal-phone", "modal-capacity", "modal-note"];
+    camposEditables.forEach(id => {
+      document.getElementById(id).disabled = !!mesa._fromReserva;
+    });
+    document.querySelectorAll(".status-option").forEach(opt => {
+      opt.disabled = !!mesa._fromReserva;
+    });
+    document.getElementById("modal-save").style.display = mesa._fromReserva ? "none" : "";
+
+    document.getElementById("modal-overlay").classList.add("open");
+  }
+
+  function closeModal() {
+    document.getElementById("modal-overlay").classList.remove("open");
+    openTableId = null;
+  }
+
+  async function saveModal() {
+    const mesa = mesas.find((t) => t.id === openTableId);
+    if (!mesa) return;
+
+    const activeStatus = document.querySelector(".status-option.active");
+    const nuevoEstado = activeStatus ? activeStatus.getAttribute("data-status") : mesa.status;
+    const capacidad = Math.max(1, parseInt(document.getElementById("modal-capacity").value, 10) || mesa.capacidad);
+    const nota = document.getElementById("modal-note").value.trim();
+    const cliente = document.getElementById("modal-client").value.trim();
+    const telefono = document.getElementById("modal-phone").value.trim();
+    const personas = cliente ? capacidad : null;
+
+    const datosActualizados = {
+      status: nuevoEstado,
+      capacidad: capacidad,
+      nota: nota,
+      cliente: cliente,
+      telefono: telefono,
+      personas: personas
+    };
+
+    try {
+      await actualizarMesa(openTableId, datosActualizados);
+      closeModal();
+      await renderTodo();
+    } catch (error) {
+      alert("Hubo un error al guardar los cambios de la mesa.");
+    }
+  }
+
+  /* ============================================================
+     EVENTOS Y CONFIGURACIÓN
+     ============================================================ */
+  function initFilters() {
+    document.querySelectorAll(".filter-tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        state.filter = tab.getAttribute("data-filter");
+        renderLegendAndFilters();
+        renderGrid();
+      });
+    });
+  }
+
+  function closeConfirm() {
+    document.getElementById("confirm-overlay").classList.remove("open");
+  }
+
+  function openConfirm() {
+    document.getElementById("confirm-overlay").classList.add("open");
+  }
+
+  function initModal() {
+    document.querySelectorAll(".status-option").forEach((opt) => {
+      opt.addEventListener("click", () => {
+        document.querySelectorAll(".status-option").forEach((o) => o.classList.remove("active"));
+        opt.classList.add("active");
+      });
+    });
+    document.getElementById("modal-close").addEventListener("click", openConfirm);
+    document.getElementById("modal-cancel").addEventListener("click", openConfirm);
+    document.getElementById("modal-save").addEventListener("click", saveModal);
+    document.getElementById("modal-overlay").addEventListener("click", (e) => {
+      if (e.target.id === "modal-overlay") openConfirm();
+    });
+
+    document.getElementById("confirm-keep").addEventListener("click", closeConfirm);
+    document.getElementById("confirm-discard").addEventListener("click", () => {
+      closeConfirm();
+      closeModal();
+    });
+    document.getElementById("confirm-overlay").addEventListener("click", (e) => {
+      if (e.target.id === "confirm-overlay") closeConfirm();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      const confirmOpen = document.getElementById("confirm-overlay").classList.contains("open");
+      if (confirmOpen) { closeConfirm(); return; }
+      const modalOpen = document.getElementById("modal-overlay").classList.contains("open");
+      if (modalOpen) openConfirm();
+    });
+  }
+
+  function initDedupe() {
+    const btn = document.getElementById("dedupe-btn");
+    if (btn) btn.addEventListener("click", corregirDuplicados);
+  }
+
+  function initSidebarAccordion() {
+    const groups = document.querySelectorAll('.nav-group[data-group]');
+    groups.forEach(group => {
+      const header = group.querySelector('.nav-group-header');
+      const items = group.querySelector('.nav-group-items');
+      if (!header || !items) return;
+
+      const key = group.getAttribute('data-group');
+      let collapsed = localStorage.getItem('sidebar_' + key) === 'true';
+      if (collapsed) {
+        group.classList.add('collapsed');
+        items.style.maxHeight = '0px';
+      }
+
+      header.addEventListener('click', () => {
+        const isCollapsed = group.classList.toggle('collapsed');
+        items.style.maxHeight = isCollapsed ? '0px' : items.scrollHeight + 'px';
+        localStorage.setItem('sidebar_' + key, isCollapsed);
+      });
+    });
+  }
+
+  // Lo que no depende de la sesión (acordeón, filtros, modales) arranca
+  // apenas carga el DOM. Lo que sí depende de saber qué empresa es
+  // (cargar/crear mesas) espera a "sesionLista", que dispara auth-check.js
+  // una vez que confirmó la sesión y trajo empresaId real de Firestore.
+  document.addEventListener("DOMContentLoaded", () => {
+    initSidebarAccordion();
+    initFilters();
+    initModal();
+    initDedupe();
+  });
+
+  document.addEventListener("sesionLista", (e) => {
+    empresaId = e.detail.empresaId;
+    renderTodo();
+    setInterval(renderTodo, 30000);
+  });
+})();
+</script>
+</body>
+</html>

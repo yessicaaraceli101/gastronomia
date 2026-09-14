@@ -1,0 +1,365 @@
+/* ============================================================
+   ESTILOS BASE (panel, tabla, buscador, botones, modal)
+   Estos son los que faltaban — sin ellos el modal se renderiza
+   metido en el flujo normal de la página en vez de como ventana
+   flotante, y la tabla sale sin formato.
+   ============================================================ */
+
+/* --- PANEL --- */
+.panel {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.panel-head h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.panel-toolbar {
+  padding: 16px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* --- BOTONES --- */
+.btn {
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #111827;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn:hover { background: #f9fafb; }
+
+.btn-primary {
+  background: #f59e0b;
+  color: #fff;
+  border-color: #f59e0b;
+}
+.btn-primary:hover {
+  background: #d97706;
+  border-color: #d97706;
+}
+
+.btn-danger {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+.btn-danger:hover { background: #fee2e2; }
+
+.btn-success {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #fff;
+}
+.btn-success:hover {
+  background: #16a34a;
+  border-color: #16a34a;
+}
+
+/* --- BUSCADOR --- */
+.search-box {
+  position: relative;
+  max-width: 320px;
+}
+.search-box svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: #9ca3af;
+  pointer-events: none;
+}
+.search-box input {
+  width: 100%;
+  padding: 9px 12px 9px 36px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-family: inherit;
+}
+.search-box input:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+/* --- TABLA --- */
+.table-wrapper {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+table thead th {
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b7280;
+  font-weight: 600;
+  padding: 11px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+table tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+  color: #1f2937;
+}
+table tbody tr:last-child td { border-bottom: none; }
+table tbody tr:hover { background: rgba(17, 24, 39, 0.025); }
+
+.text-center { text-align: center; }
+
+.col-actions {
+  width: 100px;
+  text-align: center;
+}
+
+.btn-accion {
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-accion:hover {
+  background: #f9fafb;
+  color: #f59e0b;
+}
+.btn-accion.editar:hover { color: #3b82f6; }
+.btn-accion.eliminar:hover { color: #ef4444; }
+
+.empty-state {
+  text-align: center;
+  padding: 40px 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* --- PAGINACIÓN --- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  font-size: 12.5px;
+  color: #6b7280;
+  border-top: 1px solid #e5e7eb;
+}
+.pagination button {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  cursor: pointer;
+  margin-left: 6px;
+  color: #6b7280;
+  transition: background 0.15s, color 0.15s;
+}
+.pagination button:hover:not(:disabled) {
+  background: #f9fafb;
+  color: #f59e0b;
+}
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   MODAL (la pieza que faltaba: sin esto, el modal no queda oculto
+   por defecto ni se centra en pantalla — se ve "suelto" en la página).
+   ============================================================ */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 20, 0.5);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+.modal-overlay.open {
+  display: flex;
+}
+.modal-card {
+  background: #ffffff;
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  overflow-y: auto;
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================================
+   ESTILOS EXCLUSIVOS PARA PROVEEDORES
+   ============================================================ */
+
+/* --- MODAL --- */
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.modal-head h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+.modal-close {
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.modal-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.modal-sub {
+  font-size: 14px;
+  color: #6b7280;
+  padding: 0 24px 16px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.modal-field input {
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.modal-field input:focus {
+  border-color: #f59e0b;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+/* --- ACABADO DE LA TABLA Y ESTADOS --- */
+.col-actions {
+  width: 100px;
+  text-align: center;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* --- CONFIRMACIÓN ELIMINAR --- */
+.confirm-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+}
+
+.confirm-icon svg {
+  width: 48px;
+  height: 48px;
+  color: #ef4444;
+  margin-bottom: 12px;
+}
+
+.confirm-card h3 { margin: 0 0 8px 0; color: #111827; }
+.confirm-card p { margin: 0 0 24px 0; color: #6b7280; }
+
+.confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* --- BOTÓN NARANJA --- */
+#add-proveedor-btn {
+  background-color: #f59e0b !important;
+  color: #ffffff !important;
+  border-color: #f59e0b !important;
+}
+#add-proveedor-btn:hover {
+  background-color: #d97706 !important;
+  border-color: #d97706 !important;
+}

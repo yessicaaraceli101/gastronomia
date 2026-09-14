@@ -1,0 +1,459 @@
+/* ============================================================
+   ESTILOS EXCLUSIVOS PARA USUARIOS
+   ============================================================ */
+
+/* --- FILTROS TIPO PESTAÑAS --- */
+.filter-bar {
+  display: flex !important;
+  gap: 4px !important;
+  background: #f3f4f6 !important;
+  padding: 4px !important;
+  border-radius: 8px !important;
+}
+
+.filter-tab {
+  padding: 6px 16px !important;
+  border: none !important;
+  background: transparent !important;
+  border-radius: 6px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #6b7280 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.filter-tab:hover {
+  color: #374151 !important;
+}
+
+.filter-tab.active {
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+}
+
+.f-count {
+  background: #e5e7eb !important;
+  color: #6b7280 !important;
+  border-radius: 10px !important;
+  padding: 1px 8px !important;
+  font-size: 11px !important;
+  margin-left: 4px !important;
+}
+
+.filter-tab.active .f-count {
+  background: #f3f4f6 !important;
+}
+
+/* --- BUSCADOR --- */
+.search-box {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 8px 12px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  background: #f7f4ee !important;
+  max-width: 280px !important;
+}
+
+.search-box svg {
+  width: 16px !important;
+  height: 16px !important;
+  flex-shrink: 0 !important;
+  color: #7c8880 !important;
+}
+
+.search-box input {
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  font-size: 13px !important;
+  width: 100% !important;
+  color: #16211d !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+.search-box input::placeholder {
+  color: #9da79f !important;
+}
+
+/* --- TABLA Y ESTADOS --- */
+.col-actions {
+  width: 1% !important;
+  white-space: nowrap !important;
+  text-align: right !important;
+}
+
+/* FIX: el ID quedaba casi invisible (color: var(--muted, #9ca3af) definido
+   en el <style> inline de usuarios.html, que cae al gris clarito de
+   respaldo porque --muted no está definida). Le damos más contraste. */
+.table-wrapper table td.id-cell {
+  color: #6b7280 !important;
+  font-weight: 600 !important;
+}
+
+/* Avatar circular con iniciales junto al nombre, igual que en Clientes */
+.user-name-cell {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+.user-avatar-mini {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #b45309 !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+/* FIX: antes .estado-ok/.estado-cancel solo tenían color y background,
+   sin padding/display/border-radius — por eso "Activo" salía como texto
+   plano en vez de una píldora, a diferencia de los badges de estado en
+   otras pantallas del sitio (por ej. el estado de las facturas). */
+.estado-ok,
+.estado-cancel {
+  display: inline-block !important;
+  padding: 3px 12px !important;
+  border-radius: 20px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  white-space: nowrap !important;
+}
+.estado-ok { background: #dcfce7 !important; color: #166534 !important; }
+.estado-cancel { background: #fee2e2 !important; color: #991b1b !important; }
+
+/* --- BOTÓN NARANJA --- */
+#add-user-btn {
+  background-color: #f59e0b !important;
+  color: #ffffff !important;
+  border-color: #f59e0b !important;
+}
+#add-user-btn:hover {
+  background-color: #d97706 !important;
+  border-color: #d97706 !important;
+}
+
+/* --- PAGINACIÓN (faltaba esto: antes los botones quedaban pegados
+   al texto, sin el mismo espaciado ni estilo que en Clientes) --- */
+.pagination {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 14px 20px !important;
+  font-size: 12.5px !important;
+  color: #6b7280 !important;
+  border-top: 1px solid #e5e7eb !important;
+}
+.pagination button {
+  width: 28px !important;
+  height: 28px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 8px !important;
+  border: 1px solid #e5e7eb !important;
+  background: #ffffff !important;
+  cursor: pointer !important;
+  margin-left: 6px !important;
+  color: #6b7280 !important;
+  font-size: 13px !important;
+  transition: background 0.15s ease, color 0.15s ease !important;
+}
+.pagination button:hover:not(:disabled) {
+  background: #f9fafb !important;
+  color: #f59e0b !important;
+}
+.pagination button:disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+}
+
+/* ============================================================
+   BOTONES CANCELAR (rojo) Y GUARDAR (verde) — MODAL EDICIÓN
+   ============================================================ */
+.modal-actions .btn {
+  padding: 9px 18px !important;
+  border-radius: 8px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  border: 1px solid transparent !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease !important;
+}
+
+.modal-actions .btn-danger,
+#confirm-accept.btn-danger {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  border-color: #ef4444 !important;
+}
+.modal-actions .btn-danger:hover,
+#confirm-accept.btn-danger:hover {
+  background-color: #dc2626 !important;
+  border-color: #dc2626 !important;
+}
+
+.modal-actions .btn-success {
+  background-color: #22c55e !important;
+  color: #ffffff !important;
+  border-color: #22c55e !important;
+}
+.modal-actions .btn-success:hover {
+  background-color: #16a34a !important;
+  border-color: #16a34a !important;
+}
+
+/* --- MODAL DE EDICIÓN --- */
+.modal-sub {
+  font-size: 14px !important;
+  color: #6b7280 !important;
+  padding: 0 24px 16px 24px !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.modal-field {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.modal-field.span-2 { grid-column: span 2 !important; }
+
+.modal-field label {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #374151 !important;
+}
+
+.modal-field input,
+.modal-field select {
+  padding: 8px 12px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 14px !important;
+  outline: none !important;
+  transition: border-color 0.2s !important;
+}
+
+.modal-field input:focus,
+.modal-field select:focus {
+  border-color: #f59e0b !important;
+}
+
+.status-options {
+  display: flex !important;
+  gap: 10px !important;
+  background: #f9fafb !important;
+  padding: 4px !important;
+  border-radius: 8px !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.status-option {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 6px 12px !important;
+  border: none !important;
+  background: transparent !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  color: #6b7280 !important;
+}
+
+.status-option:hover { background: #f3f4f6 !important; }
+.status-option.active { background: #ffffff !important; box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important; color: #1f2937 !important; }
+
+.status-option i {
+  display: inline-block !important;
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+}
+.status-option[data-status="ok"] i { background: #22c55e !important; }
+.status-option[data-status="cancel"] i { background: #ef4444 !important; }
+
+.last-access-value {
+  padding: 8px 0 !important;
+  color: #6b7280 !important;
+  font-size: 14px !important;
+}
+
+.spacer { flex: 1 !important; }
+.btn-danger-text {
+  background: transparent !important;
+  border: none !important;
+  color: #ef4444 !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+}
+.btn-danger-text:hover { text-decoration: underline !important; }
+
+/* --- CONFIRMACIÓN ELIMINAR --- */
+.confirm-card {
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  padding: 32px !important;
+  max-width: 400px !important;
+  width: 100% !important;
+  text-align: center !important;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1) !important;
+}
+
+.confirm-icon svg {
+  width: 48px !important;
+  height: 48px !important;
+  color: #ef4444 !important;
+  margin-bottom: 12px !important;
+}
+
+.confirm-card h3 { margin: 0 0 8px 0 !important; color: #111827 !important; }
+.confirm-card p { margin: 0 0 24px 0 !important; color: #6b7280 !important; }
+
+.confirm-actions {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 12px !important;
+}
+
+.confirm-actions .btn {
+  padding: 9px 18px !important;
+  border-radius: 8px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  border: 1px solid #e5e7eb !important;
+  background: #ffffff !important;
+  color: #374151 !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease !important;
+}
+.confirm-actions .btn:hover {
+  background: #f9fafb !important;
+}
+.confirm-actions .btn-danger {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  border-color: #ef4444 !important;
+}
+.confirm-actions .btn-danger:hover {
+  background-color: #dc2626 !important;
+  border-color: #dc2626 !important;
+}
+
+/* ==========================================================================
+   CORRECCIÓN DE POSICIÓN DE MODALES
+   ========================================================================== */
+.modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(4px) !important;
+  display: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 9999 !important;
+}
+
+.modal-overlay.open {
+  display: flex !important;
+}
+
+.modal-card {
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1) !important;
+  width: 100% !important;
+  max-width: 550px !important;
+  overflow: hidden !important;
+  animation: modalFadeIn 0.3s ease !important;
+}
+
+@keyframes modalFadeIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-head {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 20px 24px !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.modal-head h3 {
+  margin: 0 !important;
+  font-size: 18px !important;
+  color: #1f2937 !important;
+}
+
+.modal-close {
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  color: #6b7280 !important;
+  padding: 4px !important;
+  transition: color 0.2s !important;
+}
+
+.modal-close:hover {
+  color: #1f2937 !important;
+}
+
+/* ==========================================================================
+   MODAL DE ÉXITO (check verde, ícono real en SVG)
+   ========================================================================== */
+.success-card {
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  padding: 40px 32px !important;
+  max-width: 400px !important;
+  width: 100% !important;
+  text-align: center !important;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1) !important;
+  animation: modalFadeIn 0.4s ease !important;
+}
+
+.success-icon svg {
+  width: 64px !important;
+  height: 64px !important;
+  margin-bottom: 16px !important;
+}
+
+.success-card h3 { margin: 0 0 8px 0 !important; color: #111827 !important; }
+.success-card p { margin: 0 0 24px 0 !important; color: #6b7280 !important; }
+
+.success-card .btn-success {
+  background-color: #22c55e !important;
+  color: #ffffff !important;
+  border: 1px solid #22c55e !important;
+  padding: 9px 24px !important;
+  border-radius: 8px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease !important;
+}
+.success-card .btn-success:hover {
+  background-color: #16a34a !important;
+}

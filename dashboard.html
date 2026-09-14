@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gastro — Panel principal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/dashboard.css">
+<style>
+  .logout-btn {
+    background: transparent;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: #6b7280;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .logout-btn:hover {
+    background: #fee2e2;
+    border-color: #dc2626;
+    color: #dc2626;
+  }
+  .logout-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+  .logout-modal .modal-card {
+    max-width: 400px;
+  }
+  .logout-modal .modal-actions .btn-cancel {
+    background: #e5e7eb;
+    color: #1f2937;
+    border: 1px solid #d1d5db;
+  }
+  .logout-modal .modal-actions .btn-cancel:hover {
+    background: #d1d5db;
+  }
+  .logout-modal .modal-actions .btn-danger {
+    background: #dc2626;
+    color: #fff;
+    border: 1px solid #dc2626;
+  }
+  .logout-modal .modal-actions .btn-danger:hover {
+    background: #b91c1c;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">—</div>
+      <div>
+        <div class="brand-name">—</div>
+        <div class="brand-sub">—</div>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="general">
+      <div class="nav-label">GENERAL</div>
+      <div class="nav-group-items">
+        <a class="nav-item active" href="dashboard.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg><span>Panel principal</span></a>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="operacion">
+      <button type="button" class="nav-group-header">
+        <span class="nav-label">OPERACIÓN</span>
+        <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="nav-group-items">
+        <a class="nav-item" href="mesas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="4" rx="1"/><path d="M5 11v9M19 11v9M2 20h20"/></svg><span>Mesas</span></a>
+        <a class="nav-item" href="pedidos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v19l-3-2-3 2-3-2-3 2V2z"/><path d="M9 8h6M9 12h6"/></svg><span>Pedidos</span></a>
+        <a class="nav-item" href="menu.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v7a2 2 0 0 0 2 2 2 2 0 0 0 2-2V2M8 11v11M18 2c-2 2-2 6-2 8 0 1 .5 2 2 2s2-1 2-2c0-2 0-6-2-8zM18 13v9"/></svg><span>Menú</span></a>
+        <a class="nav-item" href="reservas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span>Reservas</span></a>
+        <a class="nav-item" href="clientes.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Clientes</span></a>
+        <a class="nav-item" href="proveedores.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Proveedores</span></a>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="administracion">
+      <button type="button" class="nav-group-header">
+        <span class="nav-label">ADMINISTRACIÓN</span>
+        <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="nav-group-items">
+        <a class="nav-item" href="facturacion.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg><span>Facturación</span></a>
+        <a class="nav-item" href="inventario.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8L12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg><span>Inventario</span></a>
+        <a class="nav-item" href="reportes.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg><span>Reportes</span></a>
+        <a class="nav-item" href="usuarios.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Usuarios</span></a>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="finanzas">
+      <button type="button" class="nav-group-header">
+        <span class="nav-label">FINANZAS</span>
+        <svg class="nav-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="nav-group-items">
+        <a class="nav-item" href="caja.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7H5a2 2 0 0 1-2-2 2 2 0 0 1 2-2h13v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-8H5"/><circle cx="17" cy="15" r="1"/></svg><span>Caja</span></a>
+        <a class="nav-item" href="cuentas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6M9 9h1"/></svg><span>Cuentas por pagar</span></a>
+        <a class="nav-item" href="pagos.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span>Formas de pago</span></a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Panel principal</h1>
+        <div class="date" id="branch-date">—</div>
+      </div>
+      <div class="topbar-right">
+
+        <!-- Selector de empresa (multiempresa real, lo llena auth-check.js) -->
+        <div class="company-switch" id="company-switch">
+          <button type="button" class="company-switch-btn" id="company-switch-btn">
+            <div class="co-mark">–</div>
+            <div class="co-text">
+              <div class="co-name">—</div>
+              <div class="co-branch">—</div>
+            </div>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="company-menu">
+            <div id="company-menu-list">
+              <!-- Opciones generadas por auth-check.js -->
+            </div>
+            <div class="company-menu-footer">
+              <button type="button" class="company-add" id="company-add-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                Agregar empresa
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="seg" id="currency-toggle">
+          <button class="active" data-currency="GS">Gs</button>
+          <button data-currency="USD">US$</button>
+          <button data-currency="BRL">R$</button>
+        </div>
+
+        <div class="user-chip">
+          <div class="avatar" id="user-avatar">—</div>
+          <div>
+            <div class="u-name" id="user-name">—</div>
+            <div class="u-role" id="user-role">—</div>
+          </div>
+        </div>
+
+        <!-- Botón SALIR (propio de esta página, con su modal de confirmación) -->
+        <button class="logout-btn" id="logout-btn" title="Cerrar sesión">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Salir
+        </button>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- Estadísticas -->
+      <div class="stats">
+        <div class="card" id="stat-reservations">
+          <div class="stat-top">
+            <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg></div>
+            <span class="pill up">—</span>
+          </div>
+          <div class="stat-value">0</div>
+          <div class="stat-label">Reservados</div>
+        </div>
+        <div class="card" id="stat-active-orders">
+          <div class="stat-top">
+            <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v19l-3-2-3 2-3-2-3 2V2z"/><path d="M9 8h6M9 12h6"/></svg></div>
+            <span class="pill up">—</span>
+          </div>
+          <div class="stat-value">—</div>
+          <div class="stat-label">Total pedidos</div>
+        </div>
+        <div class="card" id="stat-guests">
+          <div class="stat-top"><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><span class="pill down">—</span></div>
+          <div class="stat-value">—</div>
+          <div class="stat-label">Ventas hoy</div>
+        </div>
+        <div class="card" id="stat-revenue">
+          <div class="stat-top"><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><span class="pill up">—</span></div>
+          <div class="stat-value">—</div>
+          <div class="stat-label">Ingresos de hoy</div>
+        </div>
+      </div>
+
+      <!-- Accesos rápidos -->
+      <div class="panel">
+        <div class="panel-head"><h2>Accesos rápidos</h2></div>
+        <div class="quick-access-grid">
+          <a href="pedidos.html" class="quick-card">
+            <div class="qc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v19l-3-2-3 2-3-2-3 2V2z"/><path d="M9 8h6M9 12h6"/></svg></div>
+            <div class="qc-title">Pedidos</div>
+          </a>
+          <a href="inventario.html" class="quick-card">
+            <div class="qc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8L12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></div>
+            <div class="qc-title">Inventario</div>
+          </a>
+          <a href="caja.html" class="quick-card">
+            <div class="qc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7H5a2 2 0 0 1-2-2 2 2 0 0 1 2-2h13v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-8H5"/><circle cx="17" cy="15" r="1"/></svg></div>
+            <div class="qc-title">Caja</div>
+          </a>
+          <a href="usuarios.html" class="quick-card">
+            <div class="qc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+            <div class="qc-title">Usuarios</div>
+          </a>
+          <a href="clientes.html" class="quick-card">
+            <div class="qc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+            <div class="qc-title">Clientes</div>
+          </a>
+          <a href="proveedores.html" class="quick-card">
+            <div class="qc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+            <div class="qc-title">Proveedores</div>
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Modal de confirmación de salida -->
+<div class="modal-overlay logout-modal" id="logout-modal">
+  <div class="modal-card" style="max-width:400px; text-align:center; padding:24px;">
+    <div style="margin-bottom:16px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:48px; height:48px; margin:0 auto;">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+    </div>
+    <h3 style="margin:0 0 8px; color:#1f2937; font-size:18px;">¿Cerrar sesión?</h3>
+    <p style="margin:0 0 24px; color:#6b7280; font-size:14px;">¿Estás seguro de que deseas salir? Se cerrará tu sesión actual.</p>
+    <div class="modal-actions" style="display:flex; gap:10px; justify-content:center; border-top:none; padding:0;">
+      <button class="btn btn-cancel" id="logout-cancel" style="flex:1; padding:10px; border-radius:8px; background:#e5e7eb; color:#1f2937; border:1px solid #d1d5db; cursor:pointer; font-weight:600;">Cancelar</button>
+      <button class="btn btn-danger" id="logout-confirm" style="flex:1; padding:10px; border-radius:8px; background:#dc2626; color:#fff; border:1px solid #dc2626; cursor:pointer; font-weight:600;">Salir</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase (Auth + Firestore, para poder cargar empresa/sucursal real) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAttBvD83gI770HibucrqDVzMuqLcYONNY",
+    authDomain: "gastro-7c5ad.firebaseapp.com",
+    projectId: "gastro-7c5ad",
+    storageBucket: "gastro-7c5ad.firebasestorage.app",
+    messagingSenderId: "990505475007",
+    appId: "1:990505475007:web:09a5066610de6c7e81df0a"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  // FIX: forzamos persistencia LOCAL explícitamente. En localhost, sobre
+  // todo si se prueba en distintos puertos, Firebase puede tardar o fallar
+  // en "recordar" la sesión al recargar la página, lo que disparaba
+  // cierres de sesión falsos. Esto la hace más confiable.
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
+    console.warn('No se pudo fijar persistencia LOCAL de Firebase:', err);
+  });
+
+  console.log("Firebase conectado (dashboard)");
+</script>
+
+<!-- 🔒 Verificación de sesión + empresa/sucursal real (multiempresa) -->
+<script src="assets/js/auth-check.js"></script>
+
+<script src="assets/js/dashboard.js"></script>
+</body>
+</html>
