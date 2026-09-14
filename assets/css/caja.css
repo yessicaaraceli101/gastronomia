@@ -246,3 +246,43 @@
   .two-col { grid-template-columns: 1fr; }
   .recaudado-grid { grid-template-columns: 1fr; }
 }
+
+/* ============================================================
+   RESPONSIVE — MOBILE (agregado)
+   ------------------------------------------------------------
+   El bloque de arriba (≤992px) ya apilaba las columnas, pero en
+   un celular real (≤600px) además: los botones "Abrir caja" /
+   "Cerrar caja" quedaban muy angostos uno al lado del otro, el
+   botón de PDF ocupaba poco espacio para tocar con el dedo, y el
+   encabezado "Recaudado" con el badge de período se apretaba.
+   ============================================================ */
+@media (max-width: 600px) {
+  .caja-topbar-actions {
+    justify-content: stretch;
+  }
+  .btn-pdf {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .caja-card,
+  .recaudado-panel {
+    padding: 16px;
+  }
+
+  .caja-botones {
+    flex-direction: column;
+  }
+
+  .recaudado-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .total-sobrante-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}

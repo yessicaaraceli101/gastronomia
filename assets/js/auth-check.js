@@ -236,12 +236,69 @@
     setTimeout(() => input.focus(), 50);
   }
 
+  // ============================================================
+  // MENÚ MOBILE (botón hamburguesa + fondo oscuro)
+  // ------------------------------------------------------------
+  // En pantallas chicas (ver el media query ≤768px de dashboard.css)
+  // el sidebar pasa a ser un panel off-canvas oculto por defecto.
+  // Esta función agrega, una sola vez por página, el botón que lo
+  // abre/cierra y el fondo oscuro clickeable para cerrarlo tocando
+  // afuera. Como vive acá (auth-check.js), aparece automáticamente
+  // en cualquier página que ya cargue este script, sin tocar cada
+  // HTML por separado.
+  // ============================================================
+  function asegurarMenuMobile() {
+    if (document.getElementById('sidebar-hamburger-btn')) return;
+
+    const topbar = document.querySelector('.topbar');
+    if (!topbar) return;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'sidebar-hamburger-btn';
+    btn.className = 'sidebar-hamburger';
+    btn.setAttribute('aria-label', 'Abrir menú');
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    `;
+    // Se inserta como primer hijo del topbar, antes del título, para
+    // que quede pegado a la izquierda en mobile.
+    topbar.insertBefore(btn, topbar.firstChild);
+
+    const backdrop = document.createElement('div');
+    backdrop.id = 'sidebar-backdrop';
+    backdrop.className = 'sidebar-backdrop';
+    document.body.appendChild(backdrop);
+
+    function cerrarMenuMobile() {
+      document.body.classList.remove('sidebar-open');
+    }
+
+    btn.addEventListener('click', () => {
+      document.body.classList.toggle('sidebar-open');
+    });
+    backdrop.addEventListener('click', cerrarMenuMobile);
+
+    // Si tocan un link del menú (cambiar de página), no hace falta
+    // dejar la clase puesta — no molesta porque la página se recarga
+    // igual, pero por prolijidad la sacamos.
+    document.querySelectorAll('.sidebar .nav-item').forEach((link) => {
+      link.addEventListener('click', cerrarMenuMobile);
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') cerrarMenuMobile();
+    });
+  }
+
   // Reemplaza el bloque de marca ("Gastro / Panel administrativo", arriba
   // del sidebar) por el perfil del usuario activo, y deja solo el botón
   // "Salir" al fondo del sidebar.
   function pintarPerfilEnSidebar(sesion) {
     const sidebar = document.querySelector('.sidebar');
     if (!sidebar) return;
+
+    asegurarMenuMobile();
 
     // Arriba: avatar + nombre + rol, en el mismo lugar donde estaba "Gastro".
     const brandMark = document.querySelector('.sidebar .brand .brand-mark');

@@ -41,6 +41,8 @@ h1, h2, h3 {
 a { text-decoration: none; color: inherit; }
 button { font-family: inherit; cursor: pointer; }
 
+img { max-width: 100%; }
+
 /* ============================================================
    LAYOUT GENERAL
    ============================================================ */
@@ -126,6 +128,34 @@ button { font-family: inherit; cursor: pointer; }
 .brand-sub {
   font-size: 11px;
   color: var(--sidebar-text-soft);
+}
+
+/* ============================================================
+   BOTÓN HAMBURGUESA (solo se ve en mobile, ver media query abajo)
+   ------------------------------------------------------------
+   Lo inyecta auth-check.js en el topbar de cada página. Acá solo
+   se define el estilo; oculto por defecto en desktop.
+   ============================================================ */
+.sidebar-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  color: var(--text);
+}
+
+.sidebar-hamburger svg {
+  width: 20px;
+  height: 20px;
+}
+
+.sidebar-backdrop {
+  display: none;
 }
 
 /* ============================================================
@@ -334,6 +364,7 @@ button { font-family: inherit; cursor: pointer; }
   top: calc(100% + 8px);
   right: 0;
   width: 280px;
+  max-width: calc(100vw - 32px);
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -518,6 +549,8 @@ button { font-family: inherit; cursor: pointer; }
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .panel-head h2 {
@@ -676,4 +709,144 @@ button { font-family: inherit; cursor: pointer; }
   font-size: 15px;
   color: #1f2937;
   text-align: center;
+}
+
+/* ============================================================
+   RESPONSIVE — TABLET (≤ 1024px)
+   ------------------------------------------------------------
+   Sidebar se angosta un poco y las estadísticas pasan a 2
+   columnas en vez de 4 para que no queden apretadas.
+   ============================================================ */
+@media (max-width: 1024px) {
+  .app {
+    grid-template-columns: 220px 1fr;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ============================================================
+   RESPONSIVE — MOBILE (≤ 768px)
+   ------------------------------------------------------------
+   El sidebar deja de ocupar una columna fija del grid y pasa a
+   ser un panel superpuesto (off-canvas) que se abre con el botón
+   hamburguesa que auth-check.js agrega al topbar. Por defecto
+   queda oculto fuera de la pantalla (translateX(-100%)) y se
+   muestra agregando la clase "sidebar-open" en <body> (la agrega
+   el propio auth-check.js al tocar el botón).
+   ============================================================ */
+@media (max-width: 768px) {
+  .app {
+    display: block;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 78vw;
+    max-width: 300px;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: 8px 0 24px rgba(0,0,0,0.15);
+  }
+
+  body.sidebar-open .sidebar {
+    transform: translateX(0);
+  }
+
+  /* Fondo oscuro clickeable detrás del sidebar abierto, para poder
+     cerrarlo tocando afuera. auth-check.js crea este div una sola
+     vez y lo muestra/oculta junto con el sidebar. */
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 150;
+  }
+
+  body.sidebar-open .sidebar-backdrop {
+    display: block;
+  }
+
+  body.sidebar-open {
+    overflow: hidden;
+  }
+
+  .main {
+    width: 100%;
+  }
+
+  .sidebar-hamburger {
+    display: flex;
+  }
+
+  .topbar {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .topbar h1 {
+    font-size: 18px;
+  }
+
+  .topbar-right {
+    gap: 8px;
+    width: 100%;
+  }
+
+  .company-switch-btn {
+    min-width: 0;
+    max-width: 160px;
+  }
+
+  .content {
+    padding: 14px;
+  }
+
+  .stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .quick-access-grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 0 14px 14px 14px;
+    gap: 10px;
+  }
+
+  .panel {
+    padding: 14px 16px;
+  }
+
+  /* Tablas: en vez de romper el layout, que aparezca scroll
+     horizontal dentro de su propio contenedor. Cada página que
+     tenga <table> debería envolverla en un div con esta clase; si
+     alguna todavía no lo hace, igual no rompe nada, solo no scrollea. */
+  .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ============================================================
+   RESPONSIVE — MOBILE CHICO (≤ 420px)
+   ============================================================ */
+@media (max-width: 420px) {
+  .quick-access-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .company-switch-btn .co-branch {
+    display: none;
+  }
+
+  .user-chip .u-role {
+    display: none;
+  }
 }

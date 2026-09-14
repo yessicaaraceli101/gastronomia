@@ -133,6 +133,7 @@
 /* --- TABLA --- */
 .table-wrapper {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 table {
   width: 100%;
@@ -149,6 +150,7 @@ table thead th {
   padding: 11px 16px;
   border-bottom: 1px solid #e5e7eb;
   background: #f9fafb;
+  white-space: nowrap;
 }
 table thead th.text-right { text-align: right; }
 table thead th.col-actions { text-align: right; }
@@ -384,3 +386,75 @@ table td.ruc-cell {
   gap: 12px;
 }
 .confirm-actions .btn { flex: 1; justify-content: center; }
+
+/* ============================================================
+   RESPONSIVE
+   ------------------------------------------------------------
+   Antes este archivo no tenía NINGÚN media query — en celular, el
+   formulario del modal quedaba con dos columnas fijas apretadas,
+   la tabla se salía de la pantalla sin poder verla entera, y la
+   barra de herramientas (buscador + filtro + botón) se amontonaba.
+   ============================================================ */
+@media (max-width: 700px) {
+  .panel-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .panel-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box {
+    max-width: 100%;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+  .modal-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  table {
+    font-size: 12.5px;
+  }
+  table thead th,
+  table tbody td {
+    padding: 8px 10px;
+  }
+
+  .pagination {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  .page-controls {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-card {
+    max-width: 100%;
+  }
+  .modal-body,
+  .modal-head,
+  .modal-actions {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .confirm-card {
+    padding: 22px 18px;
+  }
+  .confirm-actions {
+    flex-direction: column;
+  }
+}

@@ -40,6 +40,7 @@
 .table-wrapper {
   overflow-x: auto;
   padding: 0;
+  -webkit-overflow-scrolling: touch;
 }
 #facturas-table {
   width: 100%;
@@ -56,6 +57,7 @@
   padding: 11px 16px;
   border-bottom: 1px solid var(--line);
   background: var(--paper);
+  white-space: nowrap;
 }
 #facturas-table td {
   padding: 12px 16px;
@@ -137,6 +139,8 @@
   font-size: 12.5px;
   color: var(--muted);
   border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+  gap: 10px;
 }
 .pagination button {
   width: 28px;
@@ -231,6 +235,7 @@
   gap: 10px;
   padding: 14px 20px;
   border-top: 1px solid var(--line);
+  flex-wrap: wrap;
 }
 
 /* ---------------------------- Modal de factura (detalle) ---------------------------- */
@@ -254,6 +259,7 @@
   border-radius: 10px;
   overflow: hidden;
   margin-bottom: 16px;
+  overflow-x: auto;
 }
 table.factura-items {
   width: 100%;
@@ -429,6 +435,44 @@ table.factura-items tr:last-child td {
   .factura-header {
     flex-direction: column;
     gap: 6px;
+  }
+}
+
+/* ============================================================
+   RESPONSIVE — MOBILE ADICIONAL
+   ------------------------------------------------------------
+   Lo de arriba (≤700px) ya cubría el modal de detalle. Faltaba:
+   el encabezado del panel con "Nueva Operación" (se amontonaba
+   con el título), la paginación, y las acciones de los modales
+   (Guardar/Cancelar quedaban muy chicos para tocar con el dedo).
+   ============================================================ */
+@media (max-width: 600px) {
+  .panel-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .panel-head .btn,
+  .btn-nueva-operacion {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pagination {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+  .modal-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .estado-modal-sub {
+    text-align: center;
   }
 }
 
@@ -613,6 +657,7 @@ table.factura-items tr:last-child td {
   border:1px solid var(--op-border);
   border-radius:9px;
   overflow-x:auto;
+  -webkit-overflow-scrolling: touch;
   margin-bottom:14px;
 }
 table.op-cuentas{
@@ -660,6 +705,7 @@ td.op-producto-col{ min-width:200px; }
 .op-totales-asiento{
   display:flex; justify-content:flex-end; gap:10px;
   margin:2px 0 20px;
+  flex-wrap: wrap;
 }
 .op-total-chip{
   display:flex; flex-direction:column; align-items:flex-end;
@@ -721,4 +767,51 @@ td.op-producto-col{ min-width:200px; }
   .op-field.span-2, .op-field.span-4{ grid-column:1 / -1; }
   .op-foot{ flex-direction:column; gap:12px; align-items:stretch; }
   .op-foot-actions{ justify-content:flex-end; }
+}
+
+/* ============================================================
+   RESPONSIVE — MOBILE CHICO PARA EL MODAL DE OPERACIÓN
+   ------------------------------------------------------------
+   A los 760px de arriba le agregamos, para pantallas todavía
+   más chicas: una sola columna en vez de dos (dos campos seguían
+   siendo angostos en un celular real), botones de Guardar/Cancelar
+   a todo el ancho, y menos padding en la cabecera/cuerpo del modal.
+   ============================================================ */
+@media (max-width: 480px) {
+  .op-grid, .op-grid.cols-3, .op-grid.cols-2 {
+    grid-template-columns: 1fr;
+  }
+  .op-field.span-2, .op-field.span-4 {
+    grid-column: auto;
+  }
+
+  .op-head {
+    padding: 14px 16px;
+  }
+  .op-head-title h3 {
+    font-size: 16px;
+  }
+
+  .op-body {
+    padding: 16px 16px 4px;
+  }
+
+  .op-foot {
+    padding: 12px 16px;
+  }
+  .op-foot-actions {
+    width: 100%;
+  }
+  .op-foot-actions .op-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .op-totales-asiento {
+    justify-content: stretch;
+  }
+  .op-total-chip {
+    flex: 1;
+    align-items: center;
+  }
 }
