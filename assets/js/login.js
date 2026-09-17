@@ -8,6 +8,11 @@
   const loginBtn = document.getElementById('login-btn');
   const errorDiv = document.getElementById('login-error');
 
+  // Mostrar/ocultar contraseña (ícono de ojo)
+  const togglePasswordBtn = document.getElementById('toggle-password');
+  const iconEye = togglePasswordBtn ? togglePasswordBtn.querySelector('.icon-eye') : null;
+  const iconEyeOff = togglePasswordBtn ? togglePasswordBtn.querySelector('.icon-eye-off') : null;
+
   // Personalización
   const logoImg = document.getElementById('company-logo');
   const negocioNombre = document.getElementById('negocio-nombre');
@@ -29,6 +34,36 @@
   const resetSendBtn = document.getElementById('reset-send');
   const resetCancelBtn = document.getElementById('reset-cancel');
   const resetCloseBtn = document.getElementById('reset-modal-close');
+
+  // ========== MOSTRAR / OCULTAR CONTRASEÑA ==========
+  // Alterna el type del input entre "password" y "text", y cambia el
+  // ícono (ojo <-> ojo tachado) + el aria-label, para que sea accesible
+  // con lector de pantalla y no solo visual.
+  if (togglePasswordBtn && passwordInput) {
+    togglePasswordBtn.addEventListener('click', function () {
+      const wasVisible = passwordInput.type === 'text';
+      const willBeVisible = !wasVisible;
+
+      passwordInput.type = willBeVisible ? 'text' : 'password';
+      togglePasswordBtn.setAttribute('aria-pressed', String(willBeVisible));
+      togglePasswordBtn.setAttribute(
+        'aria-label',
+        willBeVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'
+      );
+
+      // Importante: el ícono refleja el estado NUEVO (después del toggle),
+      // no el que había antes del clic — por eso se usa "willBeVisible" y
+      // no "wasVisible" acá.
+      if (iconEye && iconEyeOff) {
+        iconEye.style.display = willBeVisible ? '' : 'none';
+        iconEyeOff.style.display = willBeVisible ? 'none' : '';
+      }
+
+      // Mantiene el foco (y el cursor donde estaba) en el campo después
+      // de tocar el ícono, en vez de que el foco se vaya al botón.
+      passwordInput.focus();
+    });
+  }
 
   // ========== PERSONALIZACIÓN CON LOCALSTORAGE ==========
   function cargarPersonalizacion() {

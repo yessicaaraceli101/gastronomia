@@ -156,6 +156,58 @@ h2 {
   background: #04405d;
 }
 
+/* ============================================================
+   TOGGLE "MOSTRAR CONTRASEÑA" (ícono de ojo)
+   ------------------------------------------------------------
+   El input de contraseña queda envuelto en .password-field para
+   poder ubicar el botón del ojo DENTRO del campo, pegado a la
+   derecha, sin tocar el resto de los estilos de .form-group input.
+   ============================================================ */
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  /* Espacio a la derecha para que el texto/placeholder no quede
+     debajo del ícono del ojo. */
+  padding-right: 42px;
+}
+
+.toggle-password {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.toggle-password:hover {
+  color: var(--orange);
+  background: rgba(247, 147, 30, 0.12);
+}
+
+.toggle-password:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+.toggle-password svg {
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+}
+
 .form-options {
   display: flex;
   justify-content: space-between;
