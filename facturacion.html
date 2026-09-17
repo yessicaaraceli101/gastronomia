@@ -31,6 +31,21 @@
     .op-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
     .op-field.span-2 { grid-column: span 2; }
     .op-field.span-3 { grid-column: span 3; }
+    /* FIX: estas reglas (arriba) no tenían media query, así que ganaban
+       SIEMPRE por sobre las responsive de facturacion.css — que están
+       en un archivo linkeado ANTES de este <style>, así que pierden el
+       empate de especificidad por orden. Resultado: los campos del
+       modal (Cliente, CI/RUC, Método/Estado, Banco/Comprobante) se
+       quedaban apretados en 2 columnas en cualquier tamaño de pantalla.
+       Repetimos acá, con media query, para que sí ganen en mobile. */
+    @media (max-width: 760px) {
+      .op-grid.cols-2, .op-grid.cols-3 { grid-template-columns: repeat(2, 1fr); }
+      .op-field.span-2, .op-field.span-3 { grid-column: 1 / -1; }
+    }
+    @media (max-width: 480px) {
+      .op-grid.cols-2, .op-grid.cols-3 { grid-template-columns: 1fr; }
+      .op-field.span-2, .op-field.span-3 { grid-column: auto; }
+    }
     .op-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
     .op-field label { font-size: 12px; font-weight: 600; color: #565f70; }
     .op-field label .hint { font-weight: 400; color: #9aa2b1; margin-left: 4px; }
@@ -52,7 +67,12 @@
     }
     .op-add-row:hover { background: #f4f6ff; }
     .op-add-row svg { width: 15px; height: 15px; }
-    .op-cuentas-wrap { border: 1px solid #eef0f3; border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+    /* FIX: "overflow:hidden" acá tapaba el "overflow-x:auto" que ya
+       definía facturacion.css para esta clase — en vez de poder
+       scrollear la tabla de productos en mobile para ver Cant/Precio/
+       Subtotal, esas columnas quedaban directamente recortadas/ocultas
+       sin forma de llegar a ellas. */
+    .op-cuentas-wrap { border: 1px solid #eef0f3; border-radius: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 16px; }
     table.op-cuentas { width: 100%; border-collapse: collapse; font-size: 13px; }
     table.op-cuentas thead th { text-align: left; background: #f7f8fa; color: #565f70; font-weight: 600; font-size: 12px; padding: 9px 10px; border-bottom: 1px solid #eef0f3; }
     table.op-cuentas tbody td { padding: 8px 10px; border-bottom: 1px solid #f2f3f6; vertical-align: middle; }

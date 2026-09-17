@@ -22,6 +22,22 @@
   padding: 0 0 16px 0;
   border-bottom: 1px solid var(--border);
   margin-bottom: 16px;
+  /* FIX: sin esto, en pantallas angostas los 4 botones juntos son más
+     anchos que el viewport y el/los últimos quedan cortados, empujando
+     TODA la página hacia el costado (mismo problema que ya se resolvió
+     en la tabla envolviéndola en .table-wrapper). Con overflow-x:auto
+     acá, el que scrollea es solo este renglón de pestañas, contenido
+     dentro de sí mismo. */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.filter-bar::-webkit-scrollbar {
+  height: 4px;
+}
+.filter-bar::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
 }
 
 .filter-tab {
@@ -34,6 +50,10 @@
   border-radius: 999px;
   cursor: pointer;
   transition: all 0.15s ease;
+  /* Evita que los botones se achiquen/aplasten al no entrar todos —
+     en cambio, el renglón entero scrollea (ver .filter-bar arriba). */
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .filter-tab:hover {
   border-color: var(--accent);
@@ -444,6 +464,12 @@ th.col-actions, td.col-actions {
   }
   .detail-grid {
     grid-template-columns: 1fr;
+  }
+  /* Pestañas de filtro un poco más chicas en mobile, para que entren
+     más completas antes de tener que scrollear. */
+  .filter-tab {
+    font-size: 12px;
+    padding: 6px 12px;
   }
 }
 
