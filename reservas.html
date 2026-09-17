@@ -119,12 +119,14 @@
     <button type="button" class="filter-tab" data-filter="cancel">Canceladas <span class="f-count">—</span></button>
   </div>
 
-  <table>
-    <thead><tr>
-      <th>Código</th><th>Cliente</th><th>Fecha</th><th>Hora</th><th>Personas</th><th>Mesa</th><th>Estado</th><th class="col-actions">Acciones</th>
-    </tr></thead>
-    <tbody id="reservas-body"></tbody>
-  </table>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr>
+        <th>Código</th><th>Cliente</th><th>Fecha</th><th>Hora</th><th>Personas</th><th>Mesa</th><th>Estado</th><th class="col-actions">Acciones</th>
+      </tr></thead>
+      <tbody id="reservas-body"></tbody>
+    </table>
+  </div>
   <div class="pagination">
     <span id="page-label">Página 1 de 1</span>
     <button id="prev-page" aria-label="Página anterior">&lt;</button>
