@@ -1,6 +1,11 @@
 (function () {
   'use strict';
 
+  // Marcador de versión: si al recargar la página NO ves este mensaje en
+  // la consola del navegador, el archivo que se está sirviendo todavía
+  // es una versión anterior de facturacion.js.
+  console.log("%c[facturacion.js] versión con caja-cerrada + cajero (v2)", "color:#2563eb;font-weight:bold;");
+
   // empresaId y sesionActual ahora vienen de auth-check.js (evento
   // "sesionLista"), no de una lista hardcodeada de empresas de prueba.
   let empresaId = null;
@@ -223,6 +228,74 @@
   }
 
   /* ============================================================
+     CONTROL DE CAJA ABIERTA/CERRADA
+     ------------------------------------------------------------
+     No debe poder registrarse ninguna venta nueva si la caja
+     correspondiente no está abierta. Usa la misma colección y el
+     mismo criterio que caja.js: 'cajas' con {empresaId, tipo,
+     estado:'abierta'}, y el mismo mapeo de método de pago → tipo de
+     caja (Efectivo → 'efectivo'; cualquier otro medio → 'transferencia').
+     ============================================================ */
+  function mapearFormaPagoCaja(metodoPago) {
+    return metodoPago === 'Efectivo' ? 'efectivo' : 'transferencia';
+  }
+
+  async function getCajaActiva(tipo) {
+    try {
+      const snapshot = await db.collection('cajas')
+        .where('empresaId', '==', empresaId)
+        .where('tipo', '==', tipo)
+        .where('estado', '==', 'abierta')
+        .limit(1)
+        .get();
+      return !snapshot.empty;
+    } catch (error) {
+      console.error(`❌ Error consultando caja activa (${tipo}):`, error);
+      // Ante un error de lectura, bloqueamos por seguridad en vez de
+      // dejar pasar la venta: es más seguro frenar una venta de más que
+      // dejar pasar una sin control de caja detrás por un problema de
+      // red o de permisos.
+      return false;
+    }
+  }
+
+  async function obtenerEstadoCajas() {
+    const [efectivo, transferencia] = await Promise.all([
+      getCajaActiva('efectivo'),
+      getCajaActiva('transferencia')
+    ]);
+    return { efectivo, transferencia };
+  }
+
+  function mostrarModalCajaCerrada(mensaje) {
+    const textoEl = document.getElementById('caja-cerrada-texto');
+    const overlay = document.getElementById('caja-cerrada-overlay');
+
+    if (!overlay) {
+      // Si esto pasa, el HTML de esta página todavía no tiene el modal
+      // "Caja cerrada" agregado (#caja-cerrada-overlay no existe) — antes
+      // esta función no hacía nada en ese caso y la venta se bloqueaba
+      // en silencio, sin avisar nada. Ahora, como respaldo, mostramos un
+      // alert() común para que el bloqueo SIGA funcionando aunque falte
+      // el modal, y dejamos un log bien explícito para poder detectarlo.
+      console.error('❌ No se encontró #caja-cerrada-overlay en esta página. Revisá que el HTML tenga el modal de "Caja cerrada" agregado (buscá "caja-cerrada-overlay" en el archivo).');
+      alert(mensaje);
+      return;
+    }
+
+    if (textoEl) textoEl.textContent = mensaje;
+    overlay.classList.add('open');
+  }
+
+  function initModalCajaCerrada() {
+    const overlay = document.getElementById('caja-cerrada-overlay');
+    if (!overlay) return;
+    const cancelarBtn = document.getElementById('caja-cerrada-cancelar');
+    if (cancelarBtn) cancelarBtn.addEventListener('click', () => overlay.classList.remove('open'));
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('open'); });
+  }
+
+  /* ============================================================
      FUNCIONES DE UTILIDAD Y FORMATEO
      ============================================================ */
   function formatearPrecio(valor) {
@@ -377,6 +450,7 @@
     doc.text(`Cliente: ${factura.cliente?.name || '—'}`, 4, y); y += 4;
     if (factura.mesa) { doc.text(`Mesa: ${factura.mesa}`, 4, y); y += 4; }
     doc.text(`Método: ${factura.metodoPago || factura.metodo || '—'}`, 4, y); y += 4;
+    doc.text(`Cajero: ${factura.cajero || '—'}`, 4, y); y += 4;
 
     doc.line(4, y, anchoMM - 4, y); y += 5;
 
@@ -511,7 +585,8 @@
     const condicionVentaTexto = factura.condicionVenta === 'CREDITO' ? 'Crédito' : 'Contado';
     const filasComprobante = [
       filaMeta('Timbrado', factura.timbrado || '—', 'Condición de venta', condicionVentaTexto),
-      filaMeta('Fecha emisión', factura.fecEmision || (factura.created_at || '').slice(0, 10) || '—', 'Moneda', monedaFactura)
+      filaMeta('Fecha emisión', factura.fecEmision || (factura.created_at || '').slice(0, 10) || '—', 'Moneda', monedaFactura),
+      filaMeta('Cajero', factura.cajero || '—', '', '')
     ];
     y = tablaMeta(doc, filasComprobante, y, margenIzq, margenDer) + 8;
 
@@ -915,10 +990,19 @@
     btn.addEventListener('click', () => abrirModalNuevaOperacion());
   }
 
-  function abrirModalNuevaOperacion(itemsPrecargados, opciones) {
+  async function abrirModalNuevaOperacion(itemsPrecargados, opciones) {
     const overlay = document.getElementById('op-overlay');
     if (!overlay) {
       console.error('❌ No se encontró el modal de Nueva Operación (#op-overlay) en esta página.');
+      return;
+    }
+
+    // Antes de dejar arrancar una venta nueva, exigimos que al menos una
+    // caja (Efectivo o Transferencia) esté abierta. Si ninguna lo está,
+    // ni siquiera se abre el modal de la operación.
+    const estadoCajas = await obtenerEstadoCajas();
+    if (!estadoCajas.efectivo && !estadoCajas.transferencia) {
+      mostrarModalCajaCerrada('Ninguna caja está abierta. Abrí la Caja de Efectivo o la de Transferencia antes de registrar una venta.');
       return;
     }
 
@@ -1331,6 +1415,20 @@
   async function guardarOperacion() {
     clearMsg();
 
+    // Solo aplica a operaciones NUEVAS (no al editar una factura ya
+    // existente): la caja correspondiente al método de pago elegido tiene
+    // que estar abierta, si no, no se puede guardar la venta.
+    if (!facturaEditandoId) {
+      const metodoActual = document.getElementById('op-metodo-pago').value;
+      const tipoCajaNecesaria = mapearFormaPagoCaja(metodoActual);
+      const cajaOk = await getCajaActiva(tipoCajaNecesaria);
+      if (!cajaOk) {
+        const nombreCaja = tipoCajaNecesaria === 'efectivo' ? 'Efectivo' : 'Transferencia';
+        mostrarModalCajaCerrada(`La caja de ${nombreCaja} debe estar abierta para registrar esta venta (método de pago: ${metodoActual}).`);
+        return;
+      }
+    }
+
     const clienteEl = document.getElementById('op-cliente');
     const cliente = clienteEl ? clienteEl.value.trim() : '';
     if (!cliente) { showMsg('Seleccioná un cliente.', 'error'); return; }
@@ -1399,9 +1497,17 @@
       const cdcExistente = editando ? (facturaOriginal?.cdc || null) : null;
       const estadoSifenExistente = editando ? (facturaOriginal?.estadoSifen || 'no_enviada') : 'no_enviada';
 
+      // Cajero: quién hizo la venta. Se fija al CREAR la factura y no se
+      // pisa al editarla (igual criterio que created_at) — así el PDF
+      // siempre muestra quién atendió esa venta puntual, no quien la esté
+      // reimprimiendo o corrigiendo después.
+      const cajero = editando ? (facturaOriginal?.cajero || sesionActual?.nombre || '') : (sesionActual?.nombre || '');
+      console.log('[facturacion.js] DEBUG sesionActual completo:', sesionActual, '→ cajero calculado:', cajero);
+
       const payload = {
         codigo,
         empresaId: empresaId,
+        cajero,
         periodo: document.getElementById('op-periodo').value,
         tipoOper: document.getElementById('op-tipo-oper').value,
         cliente: clienteSeleccionado ? {
@@ -1546,7 +1652,7 @@
     document.getElementById("modal-fecha").textContent = formatearFecha(factura.created_at);
     document.getElementById("modal-cliente").textContent = factura.cliente?.name || "—";
     document.getElementById("modal-mesa").textContent = factura.mesa || "—";
-    document.getElementById("modal-cajero").textContent = sesionActual?.nombre || "—";
+    document.getElementById("modal-cajero").textContent = factura.cajero || sesionActual?.nombre || "—";
     document.getElementById("modal-metodo").textContent = factura.metodoPago || factura.metodo || "—";
     document.getElementById("modal-estado").textContent = getEstadoLabel(factura.estado);
 
@@ -2088,6 +2194,8 @@
     // inicializa siempre; internamente no hace nada si la página no tiene
     // el overlay correspondiente.
     initModalComprobanteDuplicado();
+    // Mismo criterio para el modal de "Caja cerrada".
+    initModalCajaCerrada();
   });
 
   // auth-check.js valida la sesión, carga la empresa/sucursal real del

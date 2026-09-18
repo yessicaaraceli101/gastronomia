@@ -14,6 +14,51 @@
   let ultimaFechaDia = null;
 
   /* ============================================================
+     MODAL DE CONFIRMACIÓN (Abrir/Cerrar caja)
+     ------------------------------------------------------------
+     Reemplaza al confirm() nativo del navegador por un modal propio
+     con el estilo de la app. Devuelve una Promise<boolean> — true si
+     el usuario tocó "Aceptar", false si tocó "Cancelar" o cerró el
+     modal (clic afuera).
+     ============================================================ */
+  function confirmarModal(titulo, texto) {
+    return new Promise((resolve) => {
+      const overlay = document.getElementById('confirm-caja-overlay');
+      if (!overlay) {
+        // Respaldo por si el HTML todavía no tiene este modal agregado:
+        // usamos el confirm() nativo en vez de bloquear la acción sin
+        // ninguna manera de confirmar.
+        console.error('❌ No se encontró #confirm-caja-overlay en esta página.');
+        resolve(window.confirm(texto));
+        return;
+      }
+
+      const tituloEl = document.getElementById('confirm-caja-titulo');
+      const textoEl = document.getElementById('confirm-caja-texto');
+      const btnCancelar = document.getElementById('confirm-caja-cancelar');
+      const btnAceptar = document.getElementById('confirm-caja-aceptar');
+
+      if (tituloEl) tituloEl.textContent = titulo;
+      if (textoEl) textoEl.textContent = texto;
+      overlay.classList.add('open');
+
+      function limpiar() {
+        overlay.classList.remove('open');
+        btnCancelar.removeEventListener('click', onCancelar);
+        btnAceptar.removeEventListener('click', onAceptar);
+        overlay.removeEventListener('click', onOverlayClick);
+      }
+      function onCancelar() { limpiar(); resolve(false); }
+      function onAceptar() { limpiar(); resolve(true); }
+      function onOverlayClick(e) { if (e.target === overlay) { limpiar(); resolve(false); } }
+
+      btnCancelar.addEventListener('click', onCancelar);
+      btnAceptar.addEventListener('click', onAceptar);
+      overlay.addEventListener('click', onOverlayClick);
+    });
+  }
+
+  /* ============================================================
      ZONA HORARIA — Paraguay (America/Asuncion)
      ============================================================ */
   const TIMEZONE = "America/Asuncion";
@@ -134,7 +179,8 @@
   }
 
   async function abrirCaja(tipo) {
-    if (!confirm(`¿Estás seguro de abrir la caja de ${tipo}?`)) return;
+    const ok = await confirmarModal('Abrir caja', `¿Estás seguro de abrir la caja de ${tipo}?`);
+    if (!ok) return;
     try {
       await db.collection('cajas').add({
         empresaId: empresaId,
@@ -151,7 +197,8 @@
   }
 
   async function cerrarCaja(id) {
-    if (!confirm(`¿Estás seguro de cerrar esta caja? Esta acción finalizará la sesión actual.`)) return;
+    const ok = await confirmarModal('Cerrar caja', '¿Estás seguro de cerrar esta caja? Esta acción finalizará la sesión actual.');
+    if (!ok) return;
     try {
       await db.collection('cajas').doc(id).update({
         estado: 'cerrada',

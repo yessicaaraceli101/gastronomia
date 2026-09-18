@@ -1,12 +1,6 @@
 (function () {
   "use strict";
 
-  // Marcador de versión: si al recargar la página NO ves este mensaje en
-  // la consola del navegador, el archivo que se está sirviendo todavía
-  // es una versión anterior de inventario.js (caché del navegador o el
-  // archivo no se reemplazó bien en el proyecto).
-  console.log("%c[inventario.js] versión con gasto-en-inventario v2 (stock inicial + compras)", "color:#2563eb;font-weight:bold;");
-
   // empresaId y sesionActual ahora vienen de auth-check.js (evento
   // "sesionLista"), no de una lista hardcodeada de empresas de prueba.
   let empresaId = null;
@@ -129,7 +123,7 @@
   async function crearGastoInventario(insumo, cantidadAAgregar, montoGastado, motivo) {
     try {
       const ahora = new Date();
-      const verbo = motivo === 'inicial' ? 'Stock inicial de' : 'Compra de';
+      const verbo = motivo === 'inicial' ? 'Stock inicial de' : (motivo === 'ajuste' ? 'Ajuste de stock de' : 'Compra de');
       const datos = {
         empresaId: empresaId,
         fecha: ahora.toISOString().slice(0, 10),
@@ -417,7 +411,33 @@
 
     try {
       if (insumoEditandoId) {
+        // Si desde "Editar" se sube el stock a mano (en vez de usar el
+        // carrito "Comprar"), es económicamente lo mismo que una compra:
+        // entró más cantidad y salió plata. Antes esto no generaba
+        // ningún gasto porque solo tocaba actualizarInsumo(). Ahora, si
+        // el stock subió respecto al valor que tenía antes de abrir el
+        // modal, se registra la diferencia como gasto también.
+        const insumoAnterior = insumos.find(i => i.id === insumoEditandoId);
+        const stockAnterior = insumoAnterior ? (insumoAnterior.cantidad || 0) : 0;
+        const diferencia = cantidad - stockAnterior;
+
         await actualizarInsumo(insumoEditandoId, datos);
+
+        if (diferencia > 0 && costoUnitario > 0) {
+          const montoGastadoAjuste = diferencia * costoUnitario;
+          const resultadoGasto = await crearGastoInventario(
+            { id: insumoEditandoId, nombre, unidad, proveedor },
+            diferencia,
+            montoGastadoAjuste,
+            'ajuste'
+          );
+          if (!resultadoGasto.ok) {
+            alert(
+              "El insumo se actualizó, pero no se pudo registrar el gasto por el aumento de stock en Reportes.\n\n" +
+              "Detalle técnico: " + (resultadoGasto.error?.message || resultadoGasto.error)
+            );
+          }
+        }
       } else {
         const nuevoId = await crearInsumo(datos);
         // El stock inicial también es plata real que salió para surtir el

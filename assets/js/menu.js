@@ -1,6 +1,11 @@
 (function () {
   "use strict";
 
+  // Marcador de versión: si al recargar la página NO ves este mensaje en
+  // la consola del navegador, el archivo que se está sirviendo todavía
+  // es una versión anterior de menu.js.
+  console.log("%c[menu.js] versión con mesa-editable + cajero (v2)", "color:#2563eb;font-weight:bold;");
+
   /* ============================================================
      Datos del restaurante
      ============================================================ */
@@ -483,11 +488,18 @@
         };
       });
 
+      // Antes esto era siempre restaurant.table ("31" fijo, hardcodeado),
+      // así que TODAS las ventas quedaban con "Mesa 31" aunque no se
+      // hubiera puesto ninguna. Ahora se lee del campo editable; si queda
+      // vacío, se manda null y la venta no lleva mesa asignada.
+      const mesaInput = document.getElementById('input-mesa');
+      const mesaValor = mesaInput ? mesaInput.value.trim() : '';
+
       if (window.OperacionFactura && typeof window.OperacionFactura.open === "function") {
         window.OperacionFactura.open(items, {
           empresaNombre: (window.sesion && window.sesion.empresaNombre) || "",
           moneda: state.currency,
-          mesa: restaurant.table
+          mesa: mesaValor || null
         });
       } else {
         console.error("OperacionFactura no está disponible. Verificá que operacion-factura.js esté incluido en menu.html.");
