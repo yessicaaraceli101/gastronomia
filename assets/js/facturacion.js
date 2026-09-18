@@ -12,6 +12,23 @@
 
   const PAGE_SIZE = 8;
 
+  // "Cliente" virtual que se antepone siempre a la lista de clientes reales
+  // en el combobox, para que Consumidor Final aparezca como una opción más
+  // dentro del mismo buscador (no como un botón aparte). Su id fijo permite
+  // detectarlo si hiciera falta en otro lado del código. Sin CI/RUC: un
+  // Consumidor Final, por definición, no tiene documento cargado.
+  const CONSUMIDOR_FINAL_CLIENTE = {
+    id: '__consumidor_final__',
+    name: 'Consumidor Final',
+    phone: '',
+    email: '',
+    ci: ''
+  };
+
+  function conConsumidorFinal(listaClientes) {
+    return [CONSUMIDOR_FINAL_CLIENTE, ...(listaClientes || [])];
+  }
+
   let pagina = 1;
   let moneda = "Gs";
   let facturas = [];
@@ -397,11 +414,48 @@
     return doc;
   }
 
-  // Factura formal A4: barra superior de color, bloque de empresa + N° de
-  // factura, datos del receptor, tabla de ítems y caja de totales a la
-  // derecha. Sin código QR.
+  // Factura formal A4: barra superior de color, bloques de datos del
+  // comprobante y del receptor armados con autoTable (así los anchos de
+  // columna se calculan solos y el texto nunca se superpone, sin importar
+  // cuán largo sea un rótulo), tabla de ítems y caja de totales. Sin
+  // código QR.
   const FACTURA_COLOR_BARRA = [26, 58, 92];   // azul oscuro de la barra superior
   const FACTURA_COLOR_ACENTO = [26, 58, 92];  // mismo azul para textos destacados
+  const FACTURA_COLOR_GRIS = [110, 118, 130]; // gris para rótulos secundarios
+  const FACTURA_COLOR_BORDE = [222, 226, 233]; // gris claro para bordes de tablas
+
+  // Fila de datos "rótulo — valor — rótulo — valor" para los bloques de
+  // metadata (comprobante / receptor). Usar autoTable para esto evita a
+  // propósito el bug de antes (texto de valor pisando al rótulo cuando el
+  // rótulo era más largo de lo previsto).
+  function filaMeta(label1, valor1, label2, valor2) {
+    return [label1 || '', valor1 || '—', label2 || '', valor2 || ''];
+  }
+
+  function tablaMeta(doc, filas, startY, margenIzq, margenDer) {
+    doc.autoTable({
+      startY,
+      body: filas,
+      theme: 'grid',
+      styles: {
+        fontSize: 9,
+        cellPadding: { top: 2.2, bottom: 2.2, left: 3, right: 3 },
+        lineColor: FACTURA_COLOR_BORDE,
+        lineWidth: 0.15,
+        textColor: [30, 35, 45]
+      },
+      columnStyles: {
+        0: { fontStyle: 'bold', textColor: FACTURA_COLOR_GRIS, cellWidth: 34, fillColor: [246, 247, 250] },
+        1: { cellWidth: 58 },
+        2: { fontStyle: 'bold', textColor: FACTURA_COLOR_GRIS, cellWidth: 34, fillColor: [246, 247, 250] },
+        3: { cellWidth: 'auto' }
+      },
+      margin: { left: margenIzq, right: pageWidthGlobal - margenDer }
+    });
+    return doc.lastAutoTable.finalY;
+  }
+
+  let pageWidthGlobal = 0; // se fija al entrar a generarDocFactura(); lo usa tablaMeta() para el margen derecho de autoTable
 
   function generarDocFactura(factura) {
     if (!window.jspdf) {
@@ -412,77 +466,84 @@
     const monedaFactura = factura.moneda || 'Gs';
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
+    pageWidthGlobal = pageWidth;
     const margenIzq = 14;
     const margenDer = pageWidth - 14;
 
     // ---------- Barra superior ----------
+    const altoHeader = 27;
     doc.setFillColor(...FACTURA_COLOR_BARRA);
-    doc.rect(0, 0, pageWidth, 10, 'F');
+    doc.rect(0, 0, pageWidth, altoHeader, 'F');
+
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
+    doc.setFontSize(16);
+    doc.text(sesionActual.empresaNombre, margenIzq, 13);
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(205, 214, 232);
+    doc.text(sesionActual.sucursalNombre, margenIzq, 19.5);
+
     const tituloBarra = factura.tipoDoc === 'TICKET' ? 'COMPROBANTE DE VENTA' : 'FACTURA';
-    doc.text(tituloBarra, pageWidth / 2, 7, { align: 'center' });
-    doc.setTextColor(0, 0, 0);
-
-    // ---------- Bloque empresa (izquierda) ----------
-    let y = 20;
+    doc.setTextColor(255, 255, 255);
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(9.5);
+    doc.text(tituloBarra, margenDer, 10, { align: 'right' });
     doc.setFontSize(15);
-    doc.setFont(undefined, 'bold');
-    doc.text(sesionActual.empresaNombre, margenIzq, y);
-    y += 6;
-    doc.setFontSize(9);
+    doc.text(factura.numeroDoc || factura.codigo || '—', margenDer, 18, { align: 'right' });
     doc.setFont(undefined, 'normal');
-    doc.text(sesionActual.sucursalNombre, margenIzq, y);
-    y += 8;
+    doc.setFontSize(8);
+    doc.setTextColor(205, 214, 232);
+    doc.text(formatearFecha(factura.created_at), margenDer, 23.5, { align: 'right' });
 
-    // ---------- Bloque N° de factura (derecha, destacado) ----------
-    doc.setFontSize(9);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(...FACTURA_COLOR_ACENTO);
-    doc.text('FACTURA N.º:', margenDer, 20, { align: 'right' });
-    doc.setFontSize(11);
-    doc.text(factura.numeroDoc || factura.codigo || '—', margenDer, 25, { align: 'right' });
-    doc.setFontSize(9);
-    doc.text('Timbrado:', margenDer, 31, { align: 'right' });
-    doc.setFont(undefined, 'normal');
-    doc.text(factura.timbrado || '—', margenDer, 35.5, { align: 'right' });
-    doc.setFont(undefined, 'bold');
-    doc.text('Fecha y hora de emisión:', margenDer, 41, { align: 'right' });
-    doc.setFont(undefined, 'normal');
-    doc.text(formatearFecha(factura.created_at), margenDer, 45.5, { align: 'right' });
     doc.setTextColor(0, 0, 0);
 
-    // ---------- Línea divisoria ----------
-    y = 50;
-    doc.setDrawColor(...FACTURA_COLOR_BARRA);
-    doc.setLineWidth(0.4);
-    doc.line(margenIzq, y, margenDer, y);
-    y += 7;
+    // ---------- Bloque "Datos del comprobante" ----------
+    let y = altoHeader + 9;
 
-    // ---------- Receptor ----------
-    doc.setFontSize(9);
     doc.setFont(undefined, 'bold');
-    doc.text('RECEPTOR:', margenIzq, y);
-    doc.setFont(undefined, 'normal');
-    doc.text(factura.cliente?.name || '—', margenIzq + 25, y);
-    y += 5.5;
+    doc.setFontSize(9.5);
+    doc.setTextColor(...FACTURA_COLOR_ACENTO);
+    doc.text('DATOS DEL COMPROBANTE', margenIzq, y);
+    doc.setTextColor(0, 0, 0);
+    y += 4;
+
+    const condicionVentaTexto = factura.condicionVenta === 'CREDITO' ? 'Crédito' : 'Contado';
+    const filasComprobante = [
+      filaMeta('Timbrado', factura.timbrado || '—', 'Condición de venta', condicionVentaTexto),
+      filaMeta('Fecha emisión', factura.fecEmision || (factura.created_at || '').slice(0, 10) || '—', 'Moneda', monedaFactura)
+    ];
+    y = tablaMeta(doc, filasComprobante, y, margenIzq, margenDer) + 8;
+
+    // ---------- Bloque "Datos del receptor" ----------
     doc.setFont(undefined, 'bold');
-    doc.text('RUC/CI CLIENTE:', margenIzq, y);
-    doc.setFont(undefined, 'normal');
-    doc.text(factura.cliente?.ci || '—', margenIzq + 25, y);
-    y += 5.5;
-    doc.setFont(undefined, 'bold');
-    doc.text('MÉTODO DE PAGO:', margenIzq, y);
-    doc.setFont(undefined, 'normal');
-    doc.text(factura.metodoPago || '—', margenIzq + 25, y);
+    doc.setFontSize(9.5);
+    doc.setTextColor(...FACTURA_COLOR_ACENTO);
+    doc.text('DATOS DEL RECEPTOR', margenIzq, y);
+    doc.setTextColor(0, 0, 0);
+    y += 4;
+
+    // Tipo de contribuyente solo tiene sentido si el receptor tiene CI/RUC
+    // cargado — Consumidor Final no lo tiene, así que ahí no corresponde
+    // mostrar ese dato (se deja esa celda vacía en su lugar).
+    const tipoContribuyenteTexto = factura.tipoContribuyente === 'JURIDICA' ? 'Jurídica' : 'Física';
+    let extraLabel = '';
+    let extraValor = '';
     if (factura.mesa) {
-      doc.setFont(undefined, 'bold');
-      doc.text('MESA:', 130, y);
-      doc.setFont(undefined, 'normal');
-      doc.text(String(factura.mesa), 145, y);
+      extraLabel = 'Mesa';
+      extraValor = String(factura.mesa);
+    } else if (factura.cliente?.ci) {
+      extraLabel = 'Tipo contribuyente';
+      extraValor = tipoContribuyenteTexto;
     }
-    y += 8;
+    const filasReceptor = [
+      filaMeta('Receptor', factura.cliente?.name || '—', 'RUC / CI', factura.cliente?.ci || '—'),
+      ['Método de pago', factura.metodoPago || '—', extraLabel, extraValor]
+    ];
+    if (factura.metodoPago === 'Transferencia' && factura.banco) {
+      filasReceptor.push(filaMeta('Banco', factura.banco, '', ''));
+    }
+    y = tablaMeta(doc, filasReceptor, y, margenIzq, margenDer) + 9;
 
     // ---------- Tabla de ítems ----------
     const items = factura.items || [];
@@ -502,15 +563,17 @@
       startY: y,
       head: [['Cant.', 'Unidad', 'Descripción', 'P. Unitario', 'Importe']],
       body: rows,
-      theme: 'grid',
-      headStyles: { fillColor: FACTURA_COLOR_BARRA, textColor: 255 },
-      styles: { fontSize: 9 },
+      theme: 'striped',
+      headStyles: { fillColor: FACTURA_COLOR_BARRA, textColor: 255, fontSize: 9, fontStyle: 'bold' },
+      styles: { fontSize: 9, cellPadding: { top: 2.4, bottom: 2.4, left: 3, right: 3 }, lineColor: FACTURA_COLOR_BORDE, lineWidth: 0.1 },
+      alternateRowStyles: { fillColor: [248, 249, 251] },
       columnStyles: {
         0: { cellWidth: 16, halign: 'center' },
         1: { cellWidth: 22 },
         3: { halign: 'right' },
         4: { halign: 'right' }
-      }
+      },
+      margin: { left: margenIzq, right: pageWidth - margenDer }
     });
 
     const finalY = (doc.lastAutoTable ? doc.lastAutoTable.finalY : y) + 8;
@@ -519,14 +582,14 @@
     const totalGs = totalGsDeFactura(factura);
     const subtotalTexto = formatearPrecioEnMoneda(totalGs, monedaFactura);
     const totalTexto = formatearPrecioEnMoneda(totalGs, monedaFactura);
-    const cajaAncho = 65;
+    const cajaAncho = 68;
     const cajaX = margenDer - cajaAncho;
     let cajaY = finalY;
 
-    doc.setDrawColor(200, 200, 200);
+    doc.setDrawColor(...FACTURA_COLOR_BORDE);
     doc.setLineWidth(0.2);
 
-    const filaAltura = 7;
+    const filaAltura = 7.5;
     const filas = [
       ['Subtotal', subtotalTexto, false],
       ['Descuento', formatearPrecioEnMoneda(0, monedaFactura), false],
@@ -534,32 +597,66 @@
     ];
 
     filas.forEach(([label, valor, destacado]) => {
+      if (destacado) {
+        // Fila "Total": gris claro con texto oscuro y un borde superior más
+        // grueso en el color de acento — resalta sin recurrir a un bloque
+        // de color sólido oscuro, que se ve más "aviso" que factura.
+        doc.setFillColor(232, 235, 240);
+        doc.rect(cajaX, cajaY, cajaAncho, filaAltura, 'F');
+        doc.setTextColor(20, 26, 38);
+        doc.setDrawColor(...FACTURA_COLOR_ACENTO);
+        doc.setLineWidth(0.5);
+        doc.line(cajaX, cajaY, cajaX + cajaAncho, cajaY);
+        doc.setDrawColor(...FACTURA_COLOR_BORDE);
+        doc.setLineWidth(0.2);
+      } else {
+        doc.setFillColor(250, 250, 251);
+        doc.rect(cajaX, cajaY, cajaAncho, filaAltura, 'F');
+        doc.setTextColor(30, 35, 45);
+      }
       doc.rect(cajaX, cajaY, cajaAncho, filaAltura);
-      doc.setFontSize(destacado ? 11 : 9);
+      doc.setFontSize(destacado ? 11.5 : 9.5);
       doc.setFont(undefined, destacado ? 'bold' : 'normal');
-      doc.text(label, cajaX + 3, cajaY + filaAltura / 2 + 1.5);
-      doc.text(valor, cajaX + cajaAncho - 3, cajaY + filaAltura / 2 + 1.5, { align: 'right' });
+      doc.text(label, cajaX + 4, cajaY + filaAltura / 2 + 1.5);
+      doc.text(valor, cajaX + cajaAncho - 4, cajaY + filaAltura / 2 + 1.5, { align: 'right' });
       cajaY += filaAltura;
     });
+    doc.setTextColor(0, 0, 0);
+
+    // Nota de moneda/IVA, alineada bajo la caja de totales — un detalle
+    // estándar en facturas reales.
+    doc.setFontSize(7.5);
+    doc.setFont(undefined, 'italic');
+    doc.setTextColor(140, 145, 155);
+    doc.text(`Montos expresados en ${monedaFactura}. IVA incluido según corresponda.`, cajaX + cajaAncho, cajaY + 4, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
 
     // ---------- Glosa (si hay) ----------
     // (Sin código QR, según lo pedido — el documento cierra directo con la
     // glosa, el método de pago ya mostrado arriba, y el pie de página.)
-    let yFinal = cajaY + 10;
+    let yFinal = cajaY + 12;
     if (factura.glosa) {
       doc.setFontSize(9);
       doc.setFont(undefined, 'bold');
-      doc.text('Glosa:', margenIzq, yFinal);
+      doc.setTextColor(...FACTURA_COLOR_GRIS);
+      doc.text('Glosa', margenIzq, yFinal);
+      yFinal += 4.5;
       doc.setFont(undefined, 'normal');
-      doc.text(factura.glosa, margenIzq + 15, yFinal, { maxWidth: pageWidth - margenIzq - 15 - 14 });
-      yFinal += 8;
+      doc.setTextColor(30, 35, 45);
+      const glosaLineas = doc.splitTextToSize(factura.glosa, margenDer - margenIzq);
+      doc.text(glosaLineas, margenIzq, yFinal);
+      yFinal += glosaLineas.length * 4.5 + 4;
     }
 
     // ---------- Pie ----------
+    doc.setDrawColor(...FACTURA_COLOR_BORDE);
+    doc.setLineWidth(0.2);
+    const pieY = doc.internal.pageSize.getHeight() - 16;
+    doc.line(margenIzq, pieY, margenDer, pieY);
     doc.setFontSize(8);
     doc.setFont(undefined, 'normal');
-    doc.setTextColor(120, 120, 120);
-    doc.text('Esta es una representación del comprobante de venta generado por Gastro.', margenIzq, doc.internal.pageSize.getHeight() - 10);
+    doc.setTextColor(140, 145, 155);
+    doc.text('Esta es una representación del comprobante de venta generado por Gastro.', margenIzq, pieY + 5);
     doc.setTextColor(0, 0, 0);
 
     return doc;
@@ -603,7 +700,9 @@
         let html = '';
         list.forEach(p => {
           const label = p.name + (p.phone ? ` (${p.phone})` : '');
-          html += `<div class="option-item" data-id="${p.id}" data-name="${p.name}" data-phone="${p.phone || ''}" data-email="${p.email || ''}" data-ci="${p.ci || ''}">${label}</div>`;
+          const esVirtual = p.id === '__consumidor_final__';
+          const claseExtra = esVirtual ? ' option-item-destacado' : '';
+          html += `<div class="option-item${claseExtra}" data-id="${p.id}" data-name="${p.name}" data-phone="${p.phone || ''}" data-email="${p.email || ''}" data-ci="${p.ci || ''}">${label}</div>`;
         });
         optionsContainer.innerHTML = html;
         optionsContainer.querySelectorAll('.option-item').forEach(el => {
@@ -752,7 +851,7 @@
     productos = productosData;
     renderHeader();
     renderTabla();
-    if (clienteCombobox) clienteCombobox.setOptions(clientesData);
+    if (clienteCombobox) clienteCombobox.setOptions(conConsumidorFinal(clientesData));
   }
 
   /* ============================================================
@@ -853,6 +952,16 @@
     setVal('op-metodo-pago', 'Efectivo');
     setVal('op-banco', '');
     setVal('op-estado', 'Pagada');
+    // NUEVO: valores por defecto de los campos de preparación fiscal
+    const condVentaEl = document.getElementById('op-condicion-venta');
+    if (condVentaEl) condVentaEl.selectedIndex = 0;
+    const tipoContribEl = document.getElementById('op-tipo-contribuyente');
+    if (tipoContribEl) tipoContribEl.selectedIndex = 0;
+    setVal('op-gravado-5', '0');
+    setVal('op-exento', '0');
+    setVal('op-cdc', '');
+    const estadoSifenEl = document.getElementById('op-estado-sifen');
+    if (estadoSifenEl) estadoSifenEl.value = 'no_enviada';
     const bancoWrap = document.getElementById('op-banco-wrap');
     if (bancoWrap) bancoWrap.classList.remove('visible');
     setVal('op-monto-recibido', '');
@@ -875,7 +984,7 @@
     cargarClientes().then(clientesData => {
       clientes = clientesData;
       if (clienteCombobox) {
-        clienteCombobox.setOptions(clientesData);
+        clienteCombobox.setOptions(conConsumidorFinal(clientesData));
         clienteCombobox.clear();
       }
     });
@@ -953,6 +1062,17 @@
     setVal('op-banco', factura.banco || '');
     setVal('op-estado', factura.estado || 'Pagada');
 
+    // NUEVO: precargar campos de preparación fiscal si la factura ya los tiene
+    const condVentaEl = document.getElementById('op-condicion-venta');
+    if (condVentaEl) condVentaEl.value = factura.condicionVenta || 'CONTADO';
+    const tipoContribEl = document.getElementById('op-tipo-contribuyente');
+    if (tipoContribEl) tipoContribEl.value = factura.tipoContribuyente || 'FISICA';
+    setVal('op-gravado-5', convertirDeGs(factura.ivaGravado5 || 0, monedaFactura).toFixed(2));
+    setVal('op-exento', convertirDeGs(factura.ivaExento || 0, monedaFactura).toFixed(2));
+    setVal('op-cdc', factura.cdc || '');
+    const estadoSifenEl = document.getElementById('op-estado-sifen');
+    if (estadoSifenEl) estadoSifenEl.value = factura.estadoSifen || 'no_enviada';
+
     const bancoWrap = document.getElementById('op-banco-wrap');
     if (bancoWrap) {
       if (factura.metodoPago === 'Transferencia') bancoWrap.classList.add('visible');
@@ -996,7 +1116,7 @@
     cargarClientes().then(clientesData => {
       clientes = clientesData;
       if (clienteCombobox) {
-        clienteCombobox.setOptions(clientesData);
+        clienteCombobox.setOptions(conConsumidorFinal(clientesData));
       }
     });
 
@@ -1132,6 +1252,22 @@
 
     const subtotalEl = document.getElementById('op-subtotal');
     if (subtotalEl) subtotalEl.value = total.toFixed(2);
+
+    // NUEVO: gravado 10% autocalculado — asume que el precio cargado ya
+    // incluye IVA 10%, salvo la parte que se haya marcado manualmente
+    // como "Gravado 5%" o "Exento". Es un criterio simple pensado como
+    // punto de partida; ajustalo si tu negocio maneja tasas mixtas por
+    // producto en vez de por factura completa.
+    const gravado5El = document.getElementById('op-gravado-5');
+    const exentoEl = document.getElementById('op-exento');
+    const gravado10El = document.getElementById('op-gravado-10');
+    if (gravado10El) {
+      const gravado5 = gravado5El ? Number(gravado5El.value) || 0 : 0;
+      const exento = exentoEl ? Number(exentoEl.value) || 0 : 0;
+      const baseGravable10 = Math.max(0, total - gravado5 - exento);
+      gravado10El.value = baseGravable10.toFixed(2);
+    }
+
     recalcularTotalCabecera();
   }
 
@@ -1250,6 +1386,19 @@
       const estado = estadoEl ? estadoEl.value : 'Pagada';
       const noGravadaGs = convertirAGs(Number(document.getElementById('op-no-gravada').value) || 0, monedaOperacion);
 
+      // NUEVO: lectura de los campos de preparación para factura electrónica
+      const condicionVenta = document.getElementById('op-condicion-venta')?.value || 'CONTADO';
+      const tipoContribuyente = document.getElementById('op-tipo-contribuyente')?.value || 'FISICA';
+      const ivaGravado10Gs = convertirAGs(Number(document.getElementById('op-gravado-10')?.value) || 0, monedaOperacion);
+      const ivaGravado5Gs = convertirAGs(Number(document.getElementById('op-gravado-5')?.value) || 0, monedaOperacion);
+      const ivaExentoGs = convertirAGs(Number(document.getElementById('op-exento')?.value) || 0, monedaOperacion);
+      // El CDC y el estado SIFEN los asigna el proveedor de facturación
+      // electrónica al enviar la factura — acá solo se preservan si ya
+      // existían (caso edición); en una factura nueva quedan vacíos hasta
+      // que se conecte esa integración.
+      const cdcExistente = editando ? (facturaOriginal?.cdc || null) : null;
+      const estadoSifenExistente = editando ? (facturaOriginal?.estadoSifen || 'no_enviada') : 'no_enviada';
+
       const payload = {
         codigo,
         empresaId: empresaId,
@@ -1275,6 +1424,14 @@
         noGravada: noGravadaGs,
         total: totalProductos + noGravadaGs,
         glosa: document.getElementById('op-glosa').value.trim(),
+        // NUEVO: campos de preparación para factura electrónica (SIFEN)
+        condicionVenta: condicionVenta,
+        tipoContribuyente: tipoContribuyente,
+        ivaGravado10: ivaGravado10Gs,
+        ivaGravado5: ivaGravado5Gs,
+        ivaExento: ivaExentoGs,
+        cdc: cdcExistente,
+        estadoSifen: estadoSifenExistente,
         items,
         estado: estado
       };
@@ -1324,6 +1481,9 @@
     on('op-moneda', 'change', recalcularTotalCabecera);
     on('op-subtotal', 'input', recalcularTotalCabecera);
     on('op-no-gravada', 'input', recalcularTotalCabecera);
+    // NUEVO: recalcular gravado 10% si se tocan Gravado 5% o Exento a mano
+    on('op-gravado-5', 'input', recalcularTotalesProductos);
+    on('op-exento', 'input', recalcularTotalesProductos);
     on('op-add-row', 'click', () => agregarFilaProducto());
     on('op-guardar', 'click', guardarOperacion);
 
@@ -1341,6 +1501,13 @@
 
     attachLiveThousandsFormat(document.getElementById('op-monto-recibido'));
 
+    // "Consumidor Final" ya no es un botón aparte: es la primera opción
+    // dentro del mismo combobox de Cliente (ver conConsumidorFinal()), así
+    // que se selecciona igual que cualquier cliente — tocándola en la lista
+    // o escribiendo "Consumidor" para filtrarla. Como no tiene id real (no
+    // está en la lista `clientes`), la búsqueda de CI de abajo no encuentra
+    // nada y el campo CI/RUC queda vacío, que es lo correcto: Consumidor
+    // Final no tiene CI/RUC propio.
     clienteCombobox = initCombobox('cliente-combobox', 'op-cliente', 'cliente-options-list', function(data) {
       clienteSeleccionado = data;
       console.log('✅ Cliente seleccionado (data):', data);
@@ -1351,9 +1518,11 @@
         if (clienteOriginal) ruc = extraerCI(clienteOriginal);
       }
 
-      console.log('✅ RUC/CI asignado:', ruc || '(vacío — revisar nombre del campo en Firestore)');
-      const numeroDocEl = document.getElementById('op-numero-doc');
-      if (numeroDocEl) numeroDocEl.value = ruc;
+      console.log('✅ RUC/CI asignado:', ruc || '(vacío — revisar nombre del campo en Firestore, o es Consumidor Final)');
+      // El CI/RUC del cliente sí se precarga (es un dato del cliente elegido).
+      // El N.º de comprobante NO se autocompleta nunca: es un dato manual,
+      // propio de cada operación, que no tiene por qué coincidir con el
+      // CI/RUC del cliente.
       const clienteCiEl = document.getElementById('op-cliente-ci');
       if (clienteCiEl) clienteCiEl.value = ruc;
 
@@ -1575,7 +1744,7 @@
 
     cargarClientes().then(clientesData => {
       clientes = clientesData;
-      if (clienteComboboxEditar) clienteComboboxEditar.setOptions(clientesData);
+      if (clienteComboboxEditar) clienteComboboxEditar.setOptions(conConsumidorFinal(clientesData));
     });
 
     cargarProductos().then(productosData => {
@@ -1946,7 +2115,7 @@
       cargarFacturas().then(f => { facturas = f; });
       cargarClientes().then(c => {
         clientes = c;
-        if (clienteCombobox) clienteCombobox.setOptions(c);
+        if (clienteCombobox) clienteCombobox.setOptions(conConsumidorFinal(c));
       });
       cargarProductos().then(p => { productos = p; });
     }

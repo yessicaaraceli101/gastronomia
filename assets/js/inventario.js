@@ -1,6 +1,12 @@
 (function () {
   "use strict";
 
+  // Marcador de versión: si al recargar la página NO ves este mensaje en
+  // la consola del navegador, el archivo que se está sirviendo todavía
+  // es una versión anterior de inventario.js (caché del navegador o el
+  // archivo no se reemplazó bien en el proyecto).
+  console.log("%c[inventario.js] versión con gasto-en-inventario v2 (stock inicial + compras)", "color:#2563eb;font-weight:bold;");
+
   // empresaId y sesionActual ahora vienen de auth-check.js (evento
   // "sesionLista"), no de una lista hardcodeada de empresas de prueba.
   let empresaId = null;
@@ -12,6 +18,14 @@
   let comprarTargetId = null;
   let insumoEditandoId = null; // null = creando nuevo insumo, si tiene valor = editando
   let idEliminarInsumo = null;
+
+  // Buscador de proveedor dentro del modal de insumo: lista cargada desde
+  // Firestore (colección 'proveedores', igual que en proveedores.js), y el
+  // proveedor elegido de esa lista (o null si el usuario escribió un
+  // nombre libre que no está en la base).
+  let proveedores = [];
+  let proveedorSeleccionado = null;
+  let proveedorCombobox = null;
 
   const symbols = { "US$": "$", "Gs": "Gs. ", "R$": "R$" };
 
@@ -42,11 +56,31 @@
     }
   }
 
+  // Misma colección 'proveedores' que usa proveedores.js, filtrada por la
+  // empresa activa — así el buscador del modal de insumo lista los mismos
+  // proveedores que ya están cargados en la sección Proveedores.
+  async function cargarProveedores() {
+    try {
+      const snapshot = await db.collection('proveedores')
+        .where('empresaId', '==', empresaId)
+        .get();
+      const todos = [];
+      snapshot.forEach(doc => {
+        todos.push({ id: doc.id, ...doc.data() });
+      });
+      return todos;
+    } catch (error) {
+      console.error("Error al cargar proveedores:", error);
+      return [];
+    }
+  }
+
   async function crearInsumo(datos) {
     try {
       datos.empresaId = empresaId; // Asignar automáticamente la empresa activa
-      await db.collection('insumos').add(datos);
+      const docRef = await db.collection('insumos').add(datos);
       console.log("Insumo creado correctamente");
+      return docRef.id;
     } catch (error) {
       console.error("Error al crear el insumo:", error);
       throw error;
@@ -80,6 +114,41 @@
     } catch (error) {
       console.error("Error al actualizar stock:", error);
       throw error;
+    }
+  }
+
+  // Registra el gasto de una compra de insumo en la colección 'gastos' —
+  // la misma que reportes.js ya lee y suma en "Gastos totales" / "Balance
+  // neto". Antes de esto, registrar una compra solo tocaba el stock del
+  // insumo y no dejaba ningún rastro contable, así que Reportes no tenía
+  // de dónde sacar el gasto.
+  // Devuelve true/false en vez de relanzar el error: preferimos que el
+  // stock quede actualizado igual aunque el gasto falle, pero el llamador
+  // necesita saber si falló para avisarle al usuario (si no, un error de
+  // permisos de Firestore pasaría totalmente inadvertido).
+  async function crearGastoInventario(insumo, cantidadAAgregar, montoGastado, motivo) {
+    try {
+      const ahora = new Date();
+      const verbo = motivo === 'inicial' ? 'Stock inicial de' : 'Compra de';
+      const datos = {
+        empresaId: empresaId,
+        fecha: ahora.toISOString().slice(0, 10),
+        created_at: ahora.toISOString(),
+        categoria: 'Inventario',
+        monto: montoGastado,
+        descripcion: `${verbo} ${cantidadAAgregar} ${insumo.unidad || ''} de ${insumo.nombre || 'insumo'}`.trim()
+          + (insumo.proveedor ? ` a ${insumo.proveedor}` : ''),
+        insumoId: insumo.id,
+        insumoNombre: insumo.nombre || '',
+        cantidad: cantidadAAgregar,
+        proveedor: insumo.proveedor || ''
+      };
+      await db.collection('gastos').add(datos);
+      console.log("Gasto de inventario registrado:", datos);
+      return { ok: true };
+    } catch (error) {
+      console.error("Error al registrar el gasto de inventario:", error);
+      return { ok: false, error };
     }
   }
 
@@ -170,6 +239,77 @@
   }
 
   /* ============================================================
+     COMBOBOX DE PROVEEDOR (buscar por nombre o escribir uno nuevo)
+     ============================================================ */
+  function initComboboxProveedor(comboboxId, inputId, optionsId, onSelect) {
+    const combobox = document.getElementById(comboboxId);
+    const input = document.getElementById(inputId);
+    const optionsContainer = document.getElementById(optionsId);
+    if (!combobox || !input || !optionsContainer) return null;
+
+    let currentOptions = [];
+
+    function filterOptions(query) {
+      const q = query.toLowerCase().trim();
+      const filtered = currentOptions.filter(p => (p.nombre || '').toLowerCase().includes(q));
+      renderOptions(filtered);
+    }
+
+    function renderOptions(list) {
+      if (list.length === 0) {
+        optionsContainer.innerHTML = `<div class="no-results">No se encontraron proveedores. Podés escribir uno nuevo.</div>`;
+        return;
+      }
+      let html = '';
+      list.forEach(p => {
+        const label = p.nombre + (p.telefono ? ` (${p.telefono})` : '');
+        html += `<div class="option-item" data-id="${p.id}" data-nombre="${p.nombre || ''}">${label}</div>`;
+      });
+      optionsContainer.innerHTML = html;
+      optionsContainer.querySelectorAll('.option-item').forEach(el => {
+        el.addEventListener('click', function () {
+          const nombre = this.dataset.nombre;
+          input.value = nombre;
+          optionsContainer.classList.remove('show');
+          if (onSelect) onSelect({ id: this.dataset.id, nombre });
+        });
+      });
+    }
+
+    input.addEventListener('input', function () {
+      const query = this.value;
+      filterOptions(query);
+      optionsContainer.classList.toggle('show', query.length > 0);
+      // El usuario está escribiendo texto libre: mientras no elija una
+      // opción de la lista, no hay proveedor "seleccionado" (id real).
+      if (onSelect) onSelect(null);
+    });
+
+    input.addEventListener('focus', function () {
+      if (this.value.length > 0) {
+        filterOptions(this.value);
+        optionsContainer.classList.add('show');
+      } else if (currentOptions.length > 0) {
+        renderOptions(currentOptions);
+        optionsContainer.classList.add('show');
+      }
+    });
+
+    input.addEventListener('blur', function () {
+      setTimeout(() => optionsContainer.classList.remove('show'), 200);
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!combobox.contains(e.target)) optionsContainer.classList.remove('show');
+    });
+
+    function setOptions(list) { currentOptions = list || []; }
+    function clear() { input.value = ''; optionsContainer.classList.remove('show'); }
+
+    return { setOptions, clear, input };
+  }
+
+  /* ============================================================
      MODAL: NUEVO / EDITAR INSUMO
      ============================================================ */
   function llenarFormularioInsumo(ins) {
@@ -182,6 +322,10 @@
     document.getElementById("input-costo-compra").value = ins.costoCompra || 0;
     document.getElementById("input-stock").value = ins.cantidad || 0;
     document.getElementById("input-minimo").value = ins.minimo || 10;
+    // El proveedor del insumo llega como texto guardado; se muestra tal
+    // cual en el campo, pero no se marca como "seleccionado de la lista"
+    // hasta que el usuario lo vuelva a elegir del buscador.
+    proveedorSeleccionado = ins.proveedorId ? { id: ins.proveedorId, nombre: ins.proveedor || '' } : null;
     actualizarPreviaCostoUnitario();
   }
 
@@ -193,9 +337,16 @@
     document.getElementById("form-nuevo-insumo").reset();
     document.getElementById("input-unidad").value = "kg";
     document.getElementById("input-factor-conversion").value = 1;
+    proveedorSeleccionado = null;
+    if (proveedorCombobox) proveedorCombobox.clear();
     actualizarPreviaCostoUnitario();
     document.getElementById("nuevo-insumo-modal").classList.add("open");
     document.getElementById("input-nombre").focus();
+
+    cargarProveedores().then(data => {
+      proveedores = data;
+      if (proveedorCombobox) proveedorCombobox.setOptions(data);
+    });
   }
 
   function abrirModalEditar(id) {
@@ -208,12 +359,19 @@
     llenarFormularioInsumo(ins);
     document.getElementById("nuevo-insumo-modal").classList.add("open");
     document.getElementById("input-nombre").focus();
+
+    cargarProveedores().then(data => {
+      proveedores = data;
+      if (proveedorCombobox) proveedorCombobox.setOptions(data);
+    });
   }
 
   function cerrarModalNuevo() {
     document.getElementById("nuevo-insumo-modal").classList.remove("open");
     document.getElementById("form-nuevo-insumo").reset();
     insumoEditandoId = null;
+    proveedorSeleccionado = null;
+    if (proveedorCombobox) proveedorCombobox.clear();
     actualizarPreviaCostoUnitario();
   }
 
@@ -244,6 +402,10 @@
       nombre,
       categoria,
       proveedor,
+      // Si el proveedor se eligió del buscador (y el texto no fue tocado
+      // después), guardamos también su id para poder relacionarlo más
+      // adelante; si el usuario escribió un nombre libre, queda en null.
+      proveedorId: (proveedorSeleccionado && proveedorSeleccionado.nombre === proveedor) ? proveedorSeleccionado.id : null,
       unidad,
       unidadCompra,
       factorConversion,
@@ -257,7 +419,27 @@
       if (insumoEditandoId) {
         await actualizarInsumo(insumoEditandoId, datos);
       } else {
-        await crearInsumo(datos);
+        const nuevoId = await crearInsumo(datos);
+        // El stock inicial también es plata real que salió para surtir el
+        // insumo por primera vez — antes esto no dejaba rastro en
+        // Reportes (a diferencia de una compra hecha con "Comprar/Reponer
+        // stock", que sí lo hace desde el cambio anterior). Lo alineamos:
+        // si cargaste stock inicial y tiene costo, también genera gasto.
+        if (cantidad > 0 && costoUnitario > 0) {
+          const montoGastadoInicial = cantidad * costoUnitario;
+          const resultadoGasto = await crearGastoInventario(
+            { id: nuevoId, nombre, unidad, proveedor },
+            cantidad,
+            montoGastadoInicial,
+            'inicial'
+          );
+          if (!resultadoGasto.ok) {
+            alert(
+              "El insumo se guardó, pero no se pudo registrar el gasto del stock inicial en Reportes.\n\n" +
+              "Detalle técnico: " + (resultadoGasto.error?.message || resultadoGasto.error)
+            );
+          }
+        }
       }
       cerrarModalNuevo();
       await renderTodo();
@@ -282,6 +464,13 @@
       document.getElementById(id).addEventListener("input", actualizarPreviaCostoUnitario);
     });
 
+    // Buscador de proveedor: al elegir uno de la lista queda "seleccionado"
+    // (con su id); si el usuario sigue escribiendo, initComboboxProveedor
+    // ya se encarga de poner proveedorSeleccionado en null.
+    proveedorCombobox = initComboboxProveedor('proveedor-combobox', 'input-proveedor', 'proveedor-options-list', function (data) {
+      proveedorSeleccionado = data;
+    });
+
     const overlay = document.getElementById("nuevo-insumo-modal");
     overlay.addEventListener("click", function (e) { if (e.target === this) cerrarModalNuevo(); });
   }
@@ -299,8 +488,19 @@
     if (cantidad < 0) cantidad = 0;
     input.value = cantidad;
 
-    const nuevoStock = insumo.cantidad + cantidad;
+    const stockActual = insumo.cantidad || 0;
+    const nuevoStock = stockActual + cantidad;
     document.getElementById("comprar-stock-final").textContent = nuevoStock;
+
+    // Desglose explícito para que quede claro que el número grande es el
+    // TOTAL resultante (stock actual + lo que se está agregando), no la
+    // cantidad que se tipeó arriba — eso confundía cuando el stock actual
+    // ya no era 0.
+    const unidad = insumo.unidad || '';
+    const desgloseEl = document.getElementById("comprar-desglose");
+    if (desgloseEl) {
+      desgloseEl.textContent = `${stockActual} ${unidad} actual + ${cantidad} ${unidad} agregado = ${nuevoStock} ${unidad}`;
+    }
 
     const btnGuardar = document.getElementById("guardar-comprar-insumo");
     btnGuardar.disabled = cantidad <= 0;
@@ -337,9 +537,32 @@
     if (cantidadAAgregar <= 0) return alert("La cantidad debe ser mayor a 0.");
 
     const nuevoTotal = insumo.cantidad + cantidadAAgregar;
+    // Gasto de esta compra: cantidad agregada × costo por unidad de uso
+    // (el mismo costoUnitario que se calcula en el modal de Nuevo Insumo,
+    // ya expresado en la unidad "kg"/"L"/etc. con la que se mide el stock).
+    const montoGastado = cantidadAAgregar * (insumo.costoUnitario || 0);
 
     try {
       await actualizarStockInsumo(comprarTargetId, nuevoTotal);
+      // Solo dejamos rastro en Reportes si hay un costo cargado — evita
+      // llenar la tabla de gastos con filas en Gs. 0 para insumos a los
+      // que todavía no se les puso costo.
+      if (montoGastado > 0) {
+        const resultadoGasto = await crearGastoInventario(insumo, cantidadAAgregar, montoGastado);
+        if (!resultadoGasto.ok) {
+          // El stock SÍ se actualizó; lo que falló fue solo el registro
+          // contable. Avisamos para que no quede pasando desapercibido
+          // (por ejemplo, si son las reglas de seguridad de Firestore las
+          // que están bloqueando la escritura en 'gastos').
+          alert(
+            "El stock se actualizó, pero no se pudo guardar el gasto en Reportes.\n\n" +
+            "Detalle técnico: " + (resultadoGasto.error?.message || resultadoGasto.error) + "\n\n" +
+            "Si el error menciona \"permission\" o \"insufficient permissions\", hay que habilitar " +
+            "en las reglas de seguridad de Firestore que los usuarios autenticados puedan crear " +
+            "documentos en la colección 'gastos'."
+          );
+        }
+      }
       cerrarModalComprar();
       await renderTodo();
     } catch (e) {

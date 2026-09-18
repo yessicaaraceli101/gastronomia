@@ -92,6 +92,21 @@
   }
 
   /* ============================================================
+     Buscador de proveedor (combobox) dentro del modal de insumo
+     ============================================================ */
+  .op-combobox { position: relative; width: 100%; }
+  .op-combobox .options {
+    position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #d1d5db;
+    border-top: none; border-radius: 0 0 8px 8px; max-height: 220px; overflow-y: auto; z-index: 20; display: none;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+  }
+  .op-combobox .options.show { display: block; }
+  .op-combobox .options .option-item { padding: 10px 14px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #f3f4f6; }
+  .op-combobox .options .option-item:hover { background: #fffbeb; }
+  .op-combobox .options .option-item:last-child { border-bottom: none; }
+  .op-combobox .options .no-results { padding: 10px 14px; color: #9ca3af; font-size: 13px; }
+
+  /* ============================================================
      Tabla de Inventario — mismo estilo que la tabla de Clientes
      ============================================================ */
   #inventario-table thead th {
@@ -386,7 +401,11 @@
             </div>
             <div class="field">
               <label>Proveedor</label>
-              <input type="text" id="input-proveedor" placeholder="Ej: Distribuidora Sur">
+              <div class="op-combobox" id="proveedor-combobox">
+                <input type="text" id="input-proveedor" placeholder="Buscá o escribí un proveedor…" autocomplete="off">
+                <div class="options" id="proveedor-options-list"></div>
+              </div>
+              <small>Elegí uno de la lista o escribí un nombre nuevo.</small>
             </div>
           </div>
         </div>
@@ -473,7 +492,7 @@
 
       <!-- Control de Cantidad -->
       <div style="margin-bottom: 20px;">
-        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">¿Cuánto estás comprando?</label>
+        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">¿Cuánto estás agregando al stock?</label>
         <div style="display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap;">
           <button type="button" class="btn-inc" data-val="1">+1</button>
           <button type="button" class="btn-inc" data-val="5">+5</button>
@@ -489,6 +508,7 @@
         <span style="color: #6b7280; display: block; font-size: 14px;">Al registrar esta compra tendrás:</span>
         <span id="comprar-stock-final">0</span>
         <span style="color: #059669; font-weight: 500;" id="comprar-unidad"></span>
+        <div id="comprar-desglose" style="color: #6b7280; font-size: 12.5px; margin-top: 6px;"></div>
       </div>
     </div>
     <div class="modal-actions">

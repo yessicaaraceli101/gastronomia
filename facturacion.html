@@ -23,6 +23,8 @@
     .op-combobox .options .option-item { padding: 8px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f2f3f6; }
     .op-combobox .options .option-item:hover { background: #f7f8fa; }
     .op-combobox .options .option-item:last-child { border-bottom: none; }
+    .op-combobox .options .option-item-destacado { font-weight: 600; color: #3557ff; background: #f7f8ff; }
+    .op-combobox .options .option-item-destacado:hover { background: #eef1ff; }
     .op-combobox .options .no-results { padding: 8px 12px; color: #9aa2b1; font-size: 13px; }
     .op-banco-wrap { display: none; }
     .op-banco-wrap.visible { display: block; }
@@ -342,7 +344,7 @@
             <div class="op-field span-2">
               <label>Cliente</label>
               <div class="op-combobox" id="cliente-combobox">
-                <input type="text" id="op-cliente" placeholder="Seleccioná un cliente…">
+                <input type="text" id="op-cliente" placeholder="Buscá un cliente o elegí Consumidor Final…">
                 <div class="options" id="cliente-options-list"></div>
               </div>
             </div>
@@ -437,7 +439,7 @@
         </div>
       </div>
 
-      <details class="op-avanzado" style="display:none;">
+      <details class="op-avanzado">
         <summary>Datos fiscales (opcional)</summary>
 
         <div class="op-grid cols-3" style="margin-top:14px;">
@@ -470,6 +472,56 @@
             <input type="text" id="op-timbrado" placeholder="12345678" maxlength="8" class="mono">
           </div>
         </div>
+
+        <!-- NUEVO: preparación para factura electrónica (SIFEN) -->
+        <div class="op-grid cols-3">
+          <div class="op-field">
+            <label>Condición de venta</label>
+            <select id="op-condicion-venta">
+              <option value="CONTADO">Contado</option>
+              <option value="CREDITO">Crédito</option>
+            </select>
+          </div>
+          <div class="op-field">
+            <label>Tipo de contribuyente</label>
+            <select id="op-tipo-contribuyente">
+              <option value="FISICA">Persona física</option>
+              <option value="JURIDICA">Persona jurídica</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="op-grid cols-3">
+          <div class="op-field">
+            <label>Gravado 10% <span class="hint">(automático)</span></label>
+            <input type="number" id="op-gravado-10" value="0" step="0.01" min="0" readonly>
+          </div>
+          <div class="op-field">
+            <label>Gravado 5%</label>
+            <input type="number" id="op-gravado-5" value="0" step="0.01" min="0">
+          </div>
+          <div class="op-field">
+            <label>Exento</label>
+            <input type="number" id="op-exento" value="0" step="0.01" min="0">
+          </div>
+        </div>
+
+        <div class="op-grid cols-2">
+          <div class="op-field">
+            <label>CDC <span class="hint">(lo asigna el proveedor/SET)</span></label>
+            <input type="text" id="op-cdc" placeholder="Se genera al enviar a la SET" class="mono" readonly>
+          </div>
+          <div class="op-field">
+            <label>Estado SIFEN</label>
+            <select id="op-estado-sifen" disabled>
+              <option value="no_enviada">No enviada</option>
+              <option value="pendiente">Pendiente</option>
+              <option value="aprobada">Aprobada</option>
+              <option value="rechazada">Rechazada</option>
+            </select>
+          </div>
+        </div>
+        <!-- FIN NUEVO -->
 
         <div class="op-grid cols-3">
           <div class="op-field">

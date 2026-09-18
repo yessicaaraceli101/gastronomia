@@ -151,6 +151,36 @@
         </div>
       </div>
 
+      <!-- ================= GRÁFICO (colapsado por defecto) ================= -->
+      <div class="panel panel-grafico" style="margin-top:20px;">
+        <div class="panel-head">
+          <h2>Gráfico de ingresos y gastos</h2>
+          <button class="btn btn-primary" id="toggle-grafico-btn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12.5" y="8" width="3" height="10"/><rect x="18" y="14" width="3" height="4"/></svg>
+            <span id="toggle-grafico-label">Ver gráfico</span>
+          </button>
+        </div>
+
+        <div class="grafico-body" id="grafico-body">
+          <div class="grafico-tabs" id="grafico-tabs">
+            <button type="button" class="grafico-tab active" data-periodo="dia">Diario</button>
+            <button type="button" class="grafico-tab" data-periodo="semana">Semanal</button>
+            <button type="button" class="grafico-tab" data-periodo="finde">Fin de semana</button>
+            <button type="button" class="grafico-tab" data-periodo="mes">Mensual</button>
+            <button type="button" class="grafico-tab" data-periodo="anio">Anual</button>
+          </div>
+
+          <div class="grafico-legend">
+            <span class="legend-item"><span class="legend-dot legend-ingreso"></span>Ingresos</span>
+            <span class="legend-item"><span class="legend-dot legend-gasto"></span>Gastos</span>
+          </div>
+
+          <div class="chart-wrapper">
+            <canvas id="grafico-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+
       <!-- Filtro de fecha -->
       <div class="panel" style="margin-top:20px;">
         <div class="panel-head">
@@ -235,6 +265,8 @@
   });
 </script>
 
+<!-- Chart.js, para el gráfico de barras de ingresos/gastos -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 
 <script src="assets/js/auth-check.js"></script>
 
