@@ -7,6 +7,7 @@
   // recién cuando llega el evento "sesionLista" que dispara auth-check.js
   // con los datos reales de Firestore.
   let empresaId = null;
+  let sucursalId = null;
   let pagina = 1;
   let moneda = "Gs";
   let pedidos = [];
@@ -27,6 +28,12 @@
      ------------------------------------------------------------
      cargarPedidos ahora filtra por empresaId real (antes traía
      TODOS los pedidos de TODAS las empresas sin filtrar).
+
+     ⚠️ FIX: ahora también filtra por sucursalId, mismo criterio
+     "blando" de siempre — pedido de otra sucursal (con sucursalId
+     cargado y distinto) queda afuera; pedido ambiguo (sin
+     sucursalId, de antes de este cambio) se deja pasar en todas
+     hasta que se edite o se reclame con el botón de arriba.
      ============================================================ */
   async function cargarPedidos() {
     try {
@@ -35,7 +42,9 @@
         .get();
       const todos = [];
       snapshot.forEach(doc => {
-        todos.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        if (data.sucursalId && data.sucursalId !== sucursalId) return;
+        todos.push({ id: doc.id, ...data });
       });
       return todos;
     } catch (error) {
@@ -53,6 +62,11 @@
   // productos") aunque el producto existiera y se viera bien en Menú.
   // Se agrega el mismo filtro por empresaId que ya usan facturacion.js y
   // menu.js.
+  //
+  // ⚠️ FIX adicional: también se filtra por sucursalId, igual que en
+  // menu.js — los productos son un menú propio de cada sucursal, así que
+  // el combobox de pedidos debe ofrecer solo los de la sucursal activa
+  // (más los ambiguos, de antes de ese cambio en menu.js).
   async function cargarProductos() {
     try {
       const snapshot = await db.collection('productos')
@@ -60,7 +74,9 @@
         .get();
       const todos = [];
       snapshot.forEach(doc => {
-        todos.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        if (data.sucursalId && data.sucursalId !== sucursalId) return;
+        todos.push({ id: doc.id, ...data });
       });
       return todos;
     } catch (error) {
@@ -82,6 +98,7 @@
   async function crearPedido(datos) {
     try {
       datos.empresaId = empresaId;
+      datos.sucursalId = sucursalId;
       datos.created_at = new Date().toISOString();
       const docRef = await db.collection('pedidos').add(datos);
       console.log("✅ Pedido creado con ID:", docRef.id);
@@ -95,12 +112,71 @@
   async function actualizarPedido(id, datos) {
     try {
       datos.empresaId = empresaId;
+      // Reclama el pedido para la sucursal activa si todavía era ambiguo
+      // (sin sucursalId, de antes de este cambio) — mismo patrón que el
+      // resto del sistema. Si ya tenía sucursalId, se preserva tal cual.
+      const pedidoOriginal = pedidos.find(p => p.id === id);
+      datos.sucursalId = pedidoOriginal?.sucursalId || sucursalId;
       await db.collection('pedidos').doc(id).update(datos);
       console.log(`✅ Pedido ${id} actualizado`);
     } catch (error) {
       console.error("❌ Error al actualizar pedido:", error);
       throw error;
     }
+  }
+
+  /* ============================================================
+     PEDIDOS "AMBIGUOS" (sin sucursalId, de antes de este cambio)
+     ------------------------------------------------------------
+     Se ven en todas las sucursales hasta que se les asigna una. En
+     vez de obligar a editarlos uno por uno, este botón los asigna
+     TODOS de una sola vez a la sucursal activa.
+     ============================================================ */
+  function contarPedidosAmbiguos() {
+    return pedidos.filter(p => !p.sucursalId).length;
+  }
+
+  function renderAmbiguoBanner() {
+    const banner = document.getElementById("ambiguo-banner");
+    const text = document.getElementById("ambiguo-text");
+    if (!banner || !text) return;
+    const cantidad = contarPedidosAmbiguos();
+    if (cantidad > 0) {
+      text.textContent = `${cantidad} pedido(s) todavía no tienen sucursal asignada y por eso se ven en todas.`;
+      banner.style.display = "flex";
+    } else {
+      banner.style.display = "none";
+    }
+  }
+
+  async function asignarPedidosAmbiguosAEstaSucursal() {
+    const btn = document.getElementById("ambiguo-btn");
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = "Asignando...";
+    try {
+      const ambiguos = pedidos.filter(p => !p.sucursalId);
+      if (!ambiguos.length) return;
+
+      const batch = db.batch();
+      ambiguos.forEach(p => {
+        batch.update(db.collection('pedidos').doc(p.id), { sucursalId: sucursalId });
+      });
+      await batch.commit();
+      console.log(`✅ Se asignaron ${ambiguos.length} pedido(s) a la sucursal "${sucursalId}".`);
+      await renderTodo();
+    } catch (error) {
+      console.error("Error al asignar pedidos ambiguos:", error);
+      alert("No se pudieron asignar los pedidos. Revisá la consola.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Asignar a esta sucursal";
+    }
+  }
+
+  function initAmbiguo() {
+    const btn = document.getElementById("ambiguo-btn");
+    if (btn) btn.addEventListener("click", asignarPedidosAmbiguosAEstaSucursal);
   }
 
   /* ============================================================
@@ -354,6 +430,7 @@
     const todos = await cargarPedidos();
     pedidos = todos;
     renderTabla();
+    renderAmbiguoBanner();
   }
 
   /* ============================================================
@@ -1054,6 +1131,7 @@
      ============================================================ */
   document.addEventListener("sesionLista", function (e) {
     empresaId = e.detail.empresaId;
+    sucursalId = e.detail.sucursalId;
 
     initPagination();
     initSearch();
@@ -1065,6 +1143,7 @@
     initNewPedido();
     initNuevoPedidoModal();
     initEditarPedidoModal();
+    initAmbiguo();
     renderTodo();
 
     setInterval(renderTodo, 30000);
