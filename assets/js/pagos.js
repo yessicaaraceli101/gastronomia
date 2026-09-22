@@ -4,6 +4,7 @@
   // empresaId y sesionActual ahora vienen de auth-check.js (evento
   // "sesionLista"), no de una lista hardcodeada de empresas de prueba.
   let empresaId = null;
+  let sucursalId = null;
   let sesionActual = null;
 
   // Mismas tasas/símbolos que usa facturacion.js — la moneda base es Gs.
@@ -19,13 +20,26 @@
   // ⚠️ Antes esto traía TODAS las facturas de TODAS las empresas
   // (sin .where). Se agrega el filtro por empresaId, igual que en
   // el resto de las páginas de Finanzas.
+  //
+  // ⚠️ FIX: ahora también se filtra por sucursalId — sin esto, "Formas
+  // de pago" sumaba en un mismo total los cobros de todas las sucursales
+  // de la empresa, igual que le pasaba a Caja/Facturación/Reportes antes
+  // de aplicarles el mismo arreglo. Filtro estricto (no "blando"): las
+  // facturas ya siempre traen sucursalId desde que se corrigió
+  // facturacion.js, y las viejas que todavía no lo tengan se resuelven
+  // desde el banner de Facturación, no acá (esta página es de solo
+  // lectura, no tiene forma de "reclamar" una factura).
   async function cargarFacturas() {
     try {
       const snapshot = await db.collection("facturas")
         .where("empresaId", "==", empresaId)
         .get();
       const todos = [];
-      snapshot.forEach(doc => todos.push({ id: doc.id, ...doc.data() }));
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.sucursalId !== sucursalId) return;
+        todos.push({ id: doc.id, ...data });
+      });
       return todos;
     } catch (error) {
       console.error("❌ Error al cargar facturas:", error);
@@ -180,9 +194,9 @@
     const tbody = document.getElementById("movimientos-body");
     if (!tbody) return;
 
-    // "Con comprobante" = facturas de la empresa activa (ya vienen filtradas
-    // desde Firestore) que tienen número de documento cargado (típico de
-    // transferencias/tarjeta con comprobante).
+    // "Con comprobante" = facturas de la empresa Y sucursal activa (ya
+    // vienen filtradas desde Firestore) que tienen número de documento
+    // cargado (típico de transferencias/tarjeta con comprobante).
     const conComprobante = facturas
       .filter(f => f.numeroDoc && String(f.numeroDoc).trim() !== "")
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -211,8 +225,8 @@
   }
 
   function renderTodo() {
-    // Las facturas ya vienen filtradas por empresa desde Firestore; acá
-    // solo nos quedamos con las efectivamente cobradas.
+    // Las facturas ya vienen filtradas por empresa y sucursal desde
+    // Firestore; acá solo nos quedamos con las efectivamente cobradas.
     const facturasPagadas = facturas.filter(f => f.estado === "Pagada");
     renderKPIs(facturasPagadas);
     renderDetalle(facturasPagadas);
@@ -281,6 +295,7 @@
   document.addEventListener("sesionLista", function (e) {
     sesionActual = e.detail;
     empresaId = sesionActual.empresaId;
+    sucursalId = sesionActual.sucursalId;
     initTopbarDate();
     actualizar();
 
