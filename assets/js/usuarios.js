@@ -13,6 +13,10 @@
   let deleteTargetId = null;
   let deleteTargetUid = null;
 
+  // Sucursales de la empresa activa, para poblar el select "Sucursal
+  // asignada" del modal de Nuevo/Editar usuario.
+  let sucursalesEmpresa = [];
+
   const PAGE_SIZE = 8;
 
   /* ============================================================
@@ -32,6 +36,35 @@
       console.error("Error al cargar usuarios:", error);
       return [];
     }
+  }
+
+  // Misma subcolección que ya usa auth-check.js para armar el selector de
+  // sucursal del topbar — así el desplegable de este modal siempre lista
+  // exactamente las mismas sucursales que existen de verdad.
+  async function cargarSucursalesEmpresa() {
+    try {
+      const snapshot = await db.collection('empresas').doc(empresaId)
+        .collection('sucursales').get();
+      const todas = [];
+      snapshot.forEach(doc => todas.push({ id: doc.id, ...doc.data() }));
+      return todas;
+    } catch (error) {
+      console.error("Error al cargar sucursales:", error);
+      return [];
+    }
+  }
+
+  function poblarSelectSucursales() {
+    const select = document.getElementById('f-user-sucursal');
+    if (!select) return;
+    const opciones = sucursalesEmpresa.map(s => `<option value="${s.id}">${s.nombre}</option>`).join('');
+    select.innerHTML = `<option value="">Todas las sucursales (acceso completo)</option>${opciones}`;
+  }
+
+  function nombreDeSucursal(sucursalId) {
+    if (!sucursalId) return null;
+    const s = sucursalesEmpresa.find(s => s.id === sucursalId);
+    return s ? s.nombre : sucursalId; // si no la encuentra, al menos mostramos el ID
   }
 
   async function crearUsuarioAuth(email, password) {
@@ -144,7 +177,7 @@
 
     tbody.innerHTML = "";
     if (pageItems.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No hay usuarios registrados.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="empty-state">No hay usuarios registrados.</td></tr>`;
     } else {
       pageItems.forEach((u, idx) => {
         const numeroFila = start + idx + 1;
@@ -152,6 +185,14 @@
         const estadoClass = u.estado === 'ok' ? 'ok' : 'cancel';
         const estadoLabel = u.estado === 'ok' ? 'Activo' : 'Inactivo';
         const lastAccess = u.last_access ? new Date(u.last_access).toLocaleString('es-PY') : '—';
+
+        // Chip de sucursal: si el usuario tiene sucursalId asignado,
+        // muestra el nombre de esa sucursal en azul; si no, "Todas" en
+        // gris (acceso a todas las sucursales de la empresa).
+        const nombreSucursal = nombreDeSucursal(u.sucursalId);
+        const sucursalHtml = nombreSucursal
+          ? `<span class="sucursal-chip">${nombreSucursal}</span>`
+          : `<span class="sucursal-chip todas">Todas</span>`;
 
         tr.innerHTML = `
           <td class="id-cell" title="${u.id}">${numeroFila}</td>
@@ -162,6 +203,7 @@
             </div>
           </td>
           <td>${u.rol || '—'}</td>
+          <td>${sucursalHtml}</td>
           <td>${u.email || '—'}</td>
           <td><span class="estado estado-${estadoClass}">${estadoLabel}</span></td>
           <td>${lastAccess}</td>
@@ -186,8 +228,13 @@
 
   async function renderTodo() {
     if (!empresaId) return; // todavía no llegó "sesionLista"
-    const todos = await cargarUsuarios();
-    usuarios = todos;
+    const [todosUsuarios, todasSucursales] = await Promise.all([
+      cargarUsuarios(),
+      cargarSucursalesEmpresa()
+    ]);
+    usuarios = todosUsuarios;
+    sucursalesEmpresa = todasSucursales;
+    poblarSelectSucursales();
     renderTabla();
   }
 
@@ -226,6 +273,9 @@
     document.getElementById("f-user-email").value = user.email || '';
     document.getElementById("f-user-last-access").textContent = user.last_access ? new Date(user.last_access).toLocaleString('es-PY') : '—';
 
+    const selectSucursal = document.getElementById("f-user-sucursal");
+    if (selectSucursal) selectSucursal.value = user.sucursalId || '';
+
     document.querySelectorAll(".status-option").forEach(btn => {
       btn.classList.toggle("active", btn.getAttribute("data-status") === user.estado);
     });
@@ -238,6 +288,8 @@
     document.getElementById("f-user-role").value = 'Administrador';
     document.getElementById("f-user-email").value = '';
     document.getElementById("f-user-password").value = '';
+    const selectSucursal = document.getElementById("f-user-sucursal");
+    if (selectSucursal) selectSucursal.value = '';
     document.querySelectorAll(".status-option").forEach(btn => btn.classList.remove("active"));
     document.querySelector(".status-option[data-status='ok']").classList.add("active");
   }
@@ -269,6 +321,11 @@
     const email = document.getElementById("f-user-email").value.trim();
     const password = document.getElementById("f-user-password").value;
     const estado = document.querySelector(".status-option.active")?.getAttribute("data-status") || "ok";
+    // Sucursal asignada: "" (Todas) se guarda como null — así el resto
+    // del sistema (auth-check.js, login.js) puede chequear con un simple
+    // "if (usuario.sucursalId)" para saber si está restringido o no.
+    const sucursalSelect = document.getElementById("f-user-sucursal");
+    const sucursalId = sucursalSelect && sucursalSelect.value ? sucursalSelect.value : null;
 
     if (!nombre) return alert("El nombre es obligatorio.");
     if (!email) return alert("El email es obligatorio.");
@@ -305,7 +362,7 @@
         uid = existingUser?.uid || null;
       }
 
-      const datosUsuario = { nombre, rol, email, estado };
+      const datosUsuario = { nombre, rol, email, estado, sucursalId };
       await guardarUsuarioFirestore(uid, datosUsuario);
 
       cerrarModal();

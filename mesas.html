@@ -128,6 +128,15 @@
         <button type="button" id="dedupe-btn" style="background:#dc2626;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">Corregir duplicados</button>
       </div>
 
+      <!-- Mesas "ambiguas": creadas antes de que el sistema guardara a qué
+           sucursal pertenece cada una. Se ven en todas las sucursales
+           hasta que se les asigna una — este botón lo hace de una sola
+           vez para todas, en vez de tener que editarlas mesa por mesa. -->
+      <div id="ambiguo-banner" style="display:none;margin:0 0 14px 0;padding:10px 14px;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:8px;font-size:13px;align-items:center;justify-content:space-between;gap:10px;">
+        <span id="ambiguo-text">Hay mesas sin sucursal asignada.</span>
+        <button type="button" id="ambiguo-btn" style="background:#2563eb;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">Asignar a esta sucursal</button>
+      </div>
+
       <div class="panel panel-mesas">
           <div class="grid-cards" id="tables-grid"></div>
       </div>
@@ -248,24 +257,38 @@
   // recién cuando llega el evento "sesionLista" que dispara auth-check.js
   // con los datos reales de Firestore.
   let empresaId = null;
+  let sucursalId = null;
   let mesas = [];
   let mesasFiltradas = [];
   let openTableId = null;
   let state = { filter: "all" };
 
   /* ============================================================
-     AUTO-SIEMBRA: si no hay mesas para la empresa, se crean 8
+     AUTO-SIEMBRA: si no hay mesas para la sucursal, se crean 8
+     ------------------------------------------------------------
+     ⚠️ FIX: antes solo chequeaba/creaba por empresaId. Con varias
+     sucursales, eso hacía que la primera vez que se abría una
+     sucursal NUEVA (sin mesas propias) se le crearan 8 mesas más,
+     aunque la empresa ya tuviera mesas viejas sin sucursalId
+     (ambiguas, visibles en todas). Ahora se considera que una
+     sucursal "ya tiene mesas" si hay alguna mesa de la empresa que
+     sea de esta sucursal O que sea ambigua (sin sucursalId) — solo
+     si NINGUNA de las dos cosas existe se siembran mesas nuevas,
+     ya etiquetadas con la sucursal activa.
      ============================================================ */
   async function sembrarMesasSiHaceFalta() {
     try {
       const snapshot = await db.collection('mesas')
         .where('empresaId', '==', empresaId)
-        .limit(1)
         .get();
 
-      if (!snapshot.empty) return; // ya hay mesas, no hacer nada
+      const yaTieneAlguna = snapshot.docs.some(doc => {
+        const data = doc.data();
+        return !data.sucursalId || data.sucursalId === sucursalId;
+      });
+      if (yaTieneAlguna) return; // esta sucursal ya "ve" mesas (propias o ambiguas)
 
-      console.log(`No hay mesas para "${empresaId}". Creando mesas por defecto...`);
+      console.log(`No hay mesas para la sucursal "${sucursalId}". Creando mesas por defecto...`);
       const cantidad = 8;
       const capacidadDefault = 4;
       const batch = db.batch();
@@ -274,6 +297,7 @@
         const ref = db.collection('mesas').doc();
         batch.set(ref, {
           empresaId: empresaId,
+          sucursalId: sucursalId,
           numero_mesa: `mesa ${i}`,
           capacidad: capacidadDefault,
           status: "free",
@@ -285,7 +309,7 @@
       }
 
       await batch.commit();
-      console.log(`✅ Se crearon ${cantidad} mesas para "${empresaId}".`);
+      console.log(`✅ Se crearon ${cantidad} mesas para la sucursal "${sucursalId}".`);
     } catch (error) {
       console.error("Error al auto-sembrar mesas:", error);
     }
@@ -306,6 +330,11 @@
       const activas = [];
       snapshot.forEach(doc => {
         const data = doc.data();
+        // Igual criterio que en el resto del sistema: si la reserva tiene
+        // sucursalId cargado, tiene que ser el de la sucursal activa; si
+        // no lo tiene (todavía no se actualizó reservas.js/html para
+        // guardarlo), se deja pasar en todas.
+        if (data.sucursalId && data.sucursalId !== sucursalId) return;
         if (data.estado !== 'cancel') {
           activas.push({ id: doc.id, ...data });
         }
@@ -342,6 +371,10 @@
       const mesasPorNumero = {};
       snapshotMesas.forEach(doc => {
         const data = doc.data();
+        // Mismo criterio de siempre: mesa de otra sucursal (con
+        // sucursalId cargado y distinto) queda afuera; mesa ambigua (sin
+        // sucursalId, de antes de este cambio) se deja pasar.
+        if (data.sucursalId && data.sucursalId !== sucursalId) return;
         const key = normalizarNombre(data.numero_mesa);
         if (!mesasPorNumero[key]) {
           mesasPorNumero[key] = { id: doc.id, ...data, _duplicateIds: [] };
@@ -427,6 +460,62 @@
       banner.style.display = "flex";
     } else {
       banner.style.display = "none";
+    }
+  }
+
+  /* ============================================================
+     MESAS "AMBIGUAS" (sin sucursalId, de antes de este cambio)
+     ------------------------------------------------------------
+     Se ven en todas las sucursales hasta que se les asigna una. En
+     vez de obligar a editarlas mesa por mesa, este botón las asigna
+     TODAS de una sola vez a la sucursal activa en este momento.
+     ============================================================ */
+  function contarMesasAmbiguas() {
+    return mesas.filter(m => !m.sucursalId).length;
+  }
+
+  function renderAmbiguoBanner() {
+    const banner = document.getElementById("ambiguo-banner");
+    const text = document.getElementById("ambiguo-text");
+    if (!banner || !text) return;
+    const cantidad = contarMesasAmbiguas();
+    if (cantidad > 0) {
+      text.textContent = `${cantidad} mesa(s) todavía no tienen sucursal asignada y por eso se ven en todas.`;
+      banner.style.display = "flex";
+    } else {
+      banner.style.display = "none";
+    }
+  }
+
+  async function asignarMesasAmbiguasAEstaSucursal() {
+    const btn = document.getElementById("ambiguo-btn");
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = "Asignando...";
+    try {
+      const ambiguas = mesas.filter(m => !m.sucursalId);
+      if (!ambiguas.length) return;
+
+      const batch = db.batch();
+      ambiguas.forEach(m => {
+        batch.update(db.collection('mesas').doc(m.id), { sucursalId: sucursalId });
+        // Si además tenía copias duplicadas (mismo nombre), se asignan
+        // también, para no dejar basura ambigua suelta.
+        if (m._duplicateIds && m._duplicateIds.length) {
+          m._duplicateIds.forEach(dupId => {
+            batch.update(db.collection('mesas').doc(dupId), { sucursalId: sucursalId });
+          });
+        }
+      });
+      await batch.commit();
+      console.log(`✅ Se asignaron ${ambiguas.length} mesa(s) a la sucursal "${sucursalId}".`);
+      await renderTodo();
+    } catch (error) {
+      console.error("Error al asignar mesas ambiguas:", error);
+      alert("No se pudieron asignar las mesas. Revisá la consola.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Asignar a esta sucursal";
     }
   }
 
@@ -527,6 +616,7 @@
     renderLegendAndFilters();
     renderGrid();
     renderDedupeBanner();
+    renderAmbiguoBanner();
   }
 
   /* ============================================================
@@ -640,7 +730,11 @@
       nota: nota,
       cliente: cliente,
       telefono: telefono,
-      personas: personas
+      personas: personas,
+      // "Reclama" la mesa para la sucursal activa si todavía era ambigua
+      // (sin sucursalId, de antes de este cambio) — mismo criterio que en
+      // inventario.js. Si ya pertenecía a esta sucursal, no cambia nada.
+      sucursalId: sucursalId
     };
 
     try {
@@ -708,6 +802,8 @@
   function initDedupe() {
     const btn = document.getElementById("dedupe-btn");
     if (btn) btn.addEventListener("click", corregirDuplicados);
+    const btnAmbiguo = document.getElementById("ambiguo-btn");
+    if (btnAmbiguo) btnAmbiguo.addEventListener("click", asignarMesasAmbiguasAEstaSucursal);
   }
 
   function initSidebarAccordion() {
@@ -745,6 +841,7 @@
 
   document.addEventListener("sesionLista", (e) => {
     empresaId = e.detail.empresaId;
+    sucursalId = e.detail.sucursalId;
     renderTodo();
     setInterval(renderTodo, 30000);
   });

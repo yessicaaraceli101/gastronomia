@@ -4,6 +4,7 @@
   // empresaId y sesionActual ahora vienen de auth-check.js (evento
   // "sesionLista"), no de una lista hardcodeada de empresas de prueba.
   let empresaId = null;
+  let sucursalId = null;
   let sesionActual = null;
 
   let moneda = "Gs";
@@ -81,6 +82,12 @@
   // ---------- Carga de datos desde Firebase ----------
   // Ya filtraba por empresaId — solo faltaba que empresaId fuera el real
   // de la sesión en vez del primero de una lista hardcodeada.
+  //
+  // ⚠️ FIX: ahora también se filtra por sucursalId. Facturas SIEMPRE lo
+  // tienen (facturacion.js lo asigna al crearlas) — filtro estricto, igual
+  // criterio que dashboard.js. Gastos lo tienen desde que inventario.js
+  // empezó a guardarlo al registrar una compra — los que no lo tengan (de
+  // antes de ese cambio) se dejan pasar igual, para no hacerlos desaparecer.
   async function cargarFacturas() {
     try {
       const snapshot = await db.collection('facturas')
@@ -88,7 +95,9 @@
         .get();
       const todos = [];
       snapshot.forEach(doc => {
-        todos.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        if (data.sucursalId !== sucursalId) return;
+        todos.push({ id: doc.id, ...data });
       });
       return todos;
     } catch (error) {
@@ -104,13 +113,71 @@
         .get();
       const todos = [];
       snapshot.forEach(doc => {
-        todos.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        if (data.sucursalId && data.sucursalId !== sucursalId) return;
+        todos.push({ id: doc.id, ...data });
       });
       return todos;
     } catch (error) {
       console.error("Error al cargar gastos:", error);
       return [];
     }
+  }
+
+  /* ============================================================
+     GASTOS "AMBIGUOS" (sin sucursalId, de antes de ese cambio en
+     inventario.js)
+     ------------------------------------------------------------
+     Cuentan igual en "Gastos totales"/"Balance neto" de todas las
+     sucursales hasta que se les asigna una. Acá no hay edición
+     individual de gastos (Reportes es de solo lectura), así que este
+     botón es la única forma de resolverlos, todos de una vez.
+     ============================================================ */
+  function contarGastosAmbiguos() {
+    return gastos.filter(g => !g.sucursalId).length;
+  }
+
+  function renderAmbiguoBanner() {
+    const banner = document.getElementById("ambiguo-banner");
+    const text = document.getElementById("ambiguo-text");
+    if (!banner || !text) return;
+    const cantidad = contarGastosAmbiguos();
+    if (cantidad > 0) {
+      text.textContent = `${cantidad} gasto(s) todavía no tienen sucursal asignada y por eso cuentan en el total de todas.`;
+      banner.style.display = "flex";
+    } else {
+      banner.style.display = "none";
+    }
+  }
+
+  async function asignarGastosAmbiguosAEstaSucursal() {
+    const btn = document.getElementById("ambiguo-btn");
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = "Asignando...";
+    try {
+      const ambiguos = gastos.filter(g => !g.sucursalId);
+      if (!ambiguos.length) return;
+
+      const batch = db.batch();
+      ambiguos.forEach(g => {
+        batch.update(db.collection('gastos').doc(g.id), { sucursalId: sucursalId });
+      });
+      await batch.commit();
+      console.log(`✅ Se asignaron ${ambiguos.length} gasto(s) a la sucursal "${sucursalId}".`);
+      await renderTodo();
+    } catch (error) {
+      console.error("Error al asignar gastos ambiguos:", error);
+      alert("No se pudieron asignar los gastos. Revisá la consola.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Asignar a esta sucursal";
+    }
+  }
+
+  function initAmbiguo() {
+    const btn = document.getElementById("ambiguo-btn");
+    if (btn) btn.addEventListener("click", asignarGastosAmbiguosAEstaSucursal);
   }
 
   // ---------- Renderización ----------
@@ -482,6 +549,7 @@
     renderHeader();
     renderStats();
     renderTabla();
+    renderAmbiguoBanner();
     if (graficoAbierto) renderGrafico(periodoGraficoActual);
   }
 
@@ -541,6 +609,7 @@
     initCurrencyToggle();
     initRefresh();
     initGrafico();
+    initAmbiguo();
   });
 
   // auth-check.js valida la sesión, carga la empresa/sucursal real del
@@ -550,6 +619,7 @@
   document.addEventListener("sesionLista", function (e) {
     sesionActual = e.detail;
     empresaId = sesionActual.empresaId;
+    sucursalId = sesionActual.sucursalId;
     pagina = 1;
     renderTodo();
 

@@ -4,6 +4,7 @@
   // empresaId y sesionActual ahora vienen de auth-check.js (evento
   // "sesionLista"), no de una lista hardcodeada de empresas de prueba.
   let empresaId = null;
+  let sucursalId = null;
   let sesionActual = null;
 
   const rates = { "Gs": 7300, "US$": 1, "R$": 5.4 };
@@ -146,6 +147,12 @@
       snapshot.forEach(doc => {
         const f = doc.data();
         if (f.estado === 'Anulada') return;
+        // Estricto: las facturas siempre traen sucursalId (facturacion.js
+        // lo asigna al crearlas) — de otra sucursal, o sin asignar (de
+        // antes de ese cambio), no cuentan acá. Se filtra en JS en vez de
+        // agregar un .where() más en Firestore, para no depender de un
+        // índice compuesto que quizás no existe todavía.
+        if (f.sucursalId !== sucursalId) return;
         movs.push({
           fecha: new Date(f.created_at),
           monto: typeof f.total === 'number' ? f.total : 0,
@@ -161,17 +168,27 @@
 
   async function getCajaActiva(tipo) {
     try {
+      // Se saca el .limit(1) porque ahora el filtro final de sucursal se
+      // hace en JS (mismo motivo que en getFacturasDesde: evitar depender
+      // de un índice compuesto de Firestore que capaz no existe). Con el
+      // volumen normal de cajas abiertas esto no es un problema de
+      // performance.
       const snapshot = await db.collection('cajas')
         .where('empresaId', '==', empresaId)
         .where('tipo', '==', tipo)
         .where('estado', '==', 'abierta')
-        .limit(1)
         .get();
 
-      if (!snapshot.empty) {
-        return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
-      }
-      return null;
+      let candidata = null;
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        // Blando: caja de otra sucursal (con sucursalId cargado y
+        // distinto) queda afuera; caja ambigua (sin sucursalId, de antes
+        // de este cambio) se deja pasar — se reclama sola al cerrarla.
+        if (data.sucursalId && data.sucursalId !== sucursalId) return;
+        if (!candidata) candidata = { id: doc.id, ...data };
+      });
+      return candidata;
     } catch (e) {
       console.error(`Error buscando caja activa (${tipo}):`, e);
       return null;
@@ -184,6 +201,7 @@
     try {
       await db.collection('cajas').add({
         empresaId: empresaId,
+        sucursalId: sucursalId,
         tipo: tipo,
         estado: 'abierta',
         fecha_apertura: new Date(),
@@ -202,7 +220,11 @@
     try {
       await db.collection('cajas').doc(id).update({
         estado: 'cerrada',
-        fecha_cierre: new Date()
+        fecha_cierre: new Date(),
+        // Si la caja que se está cerrando todavía era ambigua (de antes
+        // de este cambio, sin sucursalId), queda reclamada para la
+        // sucursal activa — mismo patrón que mesas/reservas/insumos.
+        sucursalId: sucursalId
       });
       renderTodo();
     } catch (e) {
@@ -457,6 +479,7 @@
   document.addEventListener("sesionLista", function (e) {
     sesionActual = e.detail;
     empresaId = sesionActual.empresaId;
+    sucursalId = sesionActual.sucursalId;
     renderTodo();
 
     if (!window.__gastroCajaInterval) {

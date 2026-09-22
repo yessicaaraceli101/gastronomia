@@ -4,6 +4,7 @@
   // empresaId y sesionActual ahora vienen de auth-check.js (evento
   // "sesionLista"), no de una lista hardcodeada de empresas de prueba.
   let empresaId = null;
+  let sucursalId = null;
   let sesionActual = null;
 
   let reservas = [];
@@ -19,6 +20,13 @@
 
   /* ============================================================
      CARGAR MESAS PARA EL DROPDOWN
+     ------------------------------------------------------------
+     ⚠️ FIX: antes traía TODAS las mesas de la empresa, sin importar
+     la sucursal — así que al crear una reserva en una sucursal se
+     podía elegir (y "reservar") una mesa que en realidad es de otra.
+     Ahora se filtra con el mismo criterio de siempre: mesa de otra
+     sucursal (con sucursalId cargado y distinto) queda afuera; mesa
+     ambigua (sin sucursalId, de antes de este cambio) se deja pasar.
      ============================================================ */
   async function cargarMesasDropdown() {
     try {
@@ -29,6 +37,7 @@
       select.innerHTML = '<option value="">Selecciona una mesa...</option>';
       snapshot.forEach(doc => {
         const data = doc.data();
+        if (data.sucursalId && data.sucursalId !== sucursalId) return;
         const nombreMesa = data.numero_mesa || `Mesa ${doc.id.slice(0, 4)}`;
         const opt = document.createElement('option');
         opt.value = nombreMesa;
@@ -42,6 +51,16 @@
 
   /* ============================================================
      SINCRONIZACIÓN DE ESTADO DE MESA (ignora mayúsculas y espacios)
+     ------------------------------------------------------------
+     ⚠️ FIX: antes buscaba la mesa por nombre entre TODAS las de la
+     empresa, sin filtrar por sucursal — si dos sucursales tenían
+     cada una su propia "mesa 2" (algo normal y esperable), esta
+     función podía terminar actualizando la mesa de la sucursal
+     equivocada. Ahora primero descarta las mesas de otras sucursales
+     (mismo criterio ambiguo/estricto de siempre) antes de buscar por
+     nombre. Además, si la mesa encontrada todavía era ambigua (sin
+     sucursalId), queda "reclamada" para esta sucursal en el mismo
+     paso — así mesa y reserva quedan del mismo lado.
      ============================================================ */
   async function actualizarEstadoMesa(numeroMesaInput, nuevoEstado) {
     if (!numeroMesaInput) return;
@@ -55,6 +74,7 @@
       let mesaDoc = null;
       snapshot.forEach(doc => {
         const data = doc.data();
+        if (data.sucursalId && data.sucursalId !== sucursalId) return; // de otra sucursal, no es candidata
         const nombreMesaDB = (data.numero_mesa || '').trim().toLowerCase();
         if (nombreMesaDB === limpioInput) {
           mesaDoc = { id: doc.id, ...data };
@@ -62,10 +82,12 @@
       });
 
       if (mesaDoc) {
-        await db.collection('mesas').doc(mesaDoc.id).update({ status: nuevoEstado });
+        const cambios = { status: nuevoEstado };
+        if (!mesaDoc.sucursalId) cambios.sucursalId = sucursalId; // reclama si era ambigua
+        await db.collection('mesas').doc(mesaDoc.id).update(cambios);
         console.log(`✅ Mesa "${mesaDoc.numero_mesa}" actualizada a estado: ${nuevoEstado}`);
       } else {
-        console.warn(`⚠️ No se encontró la mesa "${numeroMesaInput}" en la base de datos. Verifica el nombre.`);
+        console.warn(`⚠️ No se encontró la mesa "${numeroMesaInput}" en esta sucursal. Verifica el nombre.`);
       }
     } catch (error) {
       console.error(`Error al actualizar la mesa ${numeroMesaInput}:`, error);
@@ -81,7 +103,16 @@
         .where('empresaId', '==', empresaId)
         .get();
       const todos = [];
-      snapshot.forEach(doc => { todos.push({ id: doc.id, ...doc.data() }); });
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        // Mismo criterio que en el resto del sistema: reserva de otra
+        // sucursal (con sucursalId cargado y distinto) queda afuera;
+        // reserva ambigua (sin sucursalId, de antes de este cambio) se
+        // deja pasar en todas hasta que se edite o se reclame con el
+        // botón de arriba.
+        if (data.sucursalId && data.sucursalId !== sucursalId) return;
+        todos.push({ id: doc.id, ...data });
+      });
       return todos;
     } catch (error) {
       console.error("Error al cargar reservas:", error);
@@ -92,6 +123,7 @@
   async function crearReserva(datos) {
     try {
       datos.empresaId = empresaId;
+      datos.sucursalId = sucursalId;
       datos.codigo = `RES-${Date.now().toString().slice(-6)}`;
       await db.collection('reservas').add(datos);
 
@@ -111,6 +143,10 @@
       const oldMesa = oldReserva?.mesa || '';
       const oldEstado = oldReserva?.estado || '';
 
+      // Al editar una reserva vieja (ambigua, sin sucursalId), queda
+      // reclamada para la sucursal activa — mismo patrón que insumos y
+      // mesas.
+      datos.sucursalId = sucursalId;
       await db.collection('reservas').doc(id).update(datos);
 
       if (datos.mesa !== oldMesa || datos.estado !== oldEstado) {
@@ -138,6 +174,67 @@
     } catch (error) {
       console.error("Error al eliminar reserva:", error);
       throw error;
+    }
+  }
+
+  /* ============================================================
+     RESERVAS "AMBIGUAS" (sin sucursalId, de antes de este cambio)
+     ------------------------------------------------------------
+     Se ven en todas las sucursales hasta que se les asigna una. En
+     vez de obligar a editarlas una por una, este botón las asigna
+     TODAS de una sola vez a la sucursal activa — y de paso reclama
+     también las mesas ambiguas que tenían asociadas, para que mesa y
+     reserva queden del mismo lado.
+     ============================================================ */
+  function contarReservasAmbiguas() {
+    return reservas.filter(r => !r.sucursalId).length;
+  }
+
+  function renderAmbiguoBanner() {
+    const banner = document.getElementById("ambiguo-banner");
+    const text = document.getElementById("ambiguo-text");
+    if (!banner || !text) return;
+    const cantidad = contarReservasAmbiguas();
+    if (cantidad > 0) {
+      text.textContent = `${cantidad} reserva(s) todavía no tienen sucursal asignada y por eso se ven en todas.`;
+      banner.style.display = "flex";
+    } else {
+      banner.style.display = "none";
+    }
+  }
+
+  async function asignarReservasAmbiguasAEstaSucursal() {
+    const btn = document.getElementById("ambiguo-btn");
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = "Asignando...";
+    try {
+      const ambiguas = reservas.filter(r => !r.sucursalId);
+      if (!ambiguas.length) return;
+
+      const batch = db.batch();
+      ambiguas.forEach(r => {
+        batch.update(db.collection('reservas').doc(r.id), { sucursalId: sucursalId });
+      });
+      await batch.commit();
+      console.log(`✅ Se asignaron ${ambiguas.length} reserva(s) a la sucursal "${sucursalId}".`);
+
+      // Además de la reserva, reclamamos también la mesa asociada a cada
+      // una (si todavía era ambigua) — así mesas.html deja de mostrarlas
+      // en las otras sucursales también.
+      for (const r of ambiguas) {
+        if (r.mesa && r.estado !== 'cancel') {
+          await actualizarEstadoMesa(r.mesa, 'reserved');
+        }
+      }
+
+      await renderTodo();
+    } catch (error) {
+      console.error("Error al asignar reservas ambiguas:", error);
+      alert("No se pudieron asignar las reservas. Revisá la consola.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Asignar a esta sucursal";
     }
   }
 
@@ -224,6 +321,7 @@
     renderFecha();
     renderFiltros();
     renderTabla();
+    renderAmbiguoBanner();
     await cargarMesasDropdown();
   }
 
@@ -423,6 +521,11 @@
     });
   }
 
+  function initAmbiguo() {
+    const btn = document.getElementById("ambiguo-btn");
+    if (btn) btn.addEventListener("click", asignarReservasAmbiguasAEstaSucursal);
+  }
+
   // El selector de empresa/sucursal (abrir/cerrar menú, "Agregar empresa",
   // pintar opciones) ahora lo maneja auth-check.js igual que en el resto
   // de las páginas — ya no hace falta duplicar esa lógica acá.
@@ -431,6 +534,7 @@
     initModals();
     initFilters();
     initPagination();
+    initAmbiguo();
   });
 
   // auth-check.js valida la sesión, carga la empresa/sucursal real del
@@ -439,6 +543,7 @@
   document.addEventListener("sesionLista", function (e) {
     sesionActual = e.detail;
     empresaId = sesionActual.empresaId;
+    sucursalId = sesionActual.sucursalId;
     pagina = 1;
     renderTodo();
   });

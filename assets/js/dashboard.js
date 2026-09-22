@@ -32,6 +32,13 @@
   // código de esas páginas en este proyecto): cada documento tiene
   // "empresaId" y una fecha en el campo "fecha" o "created_at". Si en tu
   // proyecto se llaman distinto, avisame para ajustar el filtro.
+  //
+  // ⚠️ "Reservados" y "Total pedidos" TODAVÍA se cuentan solo por
+  // empresaId, sin sucursalId — porque no tengo reservas.js/pedidos.js en
+  // este proyecto para saber si esos documentos ya guardan sucursalId.
+  // Si esas colecciones no lo tienen, filtrar por sucursalId acá dejaría
+  // esas dos tarjetas en 0 SIEMPRE. Pasame esos dos archivos para
+  // aplicarles el mismo arreglo que a "Ventas hoy" / "Ingresos de hoy".
   function inicioDeHoy() {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -61,13 +68,20 @@
     }
   }
 
-  async function calcularVentasEIngresosDeHoy(empresaId) {
+  // "Ventas hoy" e "Ingresos de hoy" SÍ se filtran por sucursalId además
+  // de empresaId — facturacion.js ahora guarda sucursalId en cada
+  // factura nueva, así que esto refleja solo la sucursal activa. Las
+  // facturas viejas (de antes de ese cambio) no tienen sucursalId y
+  // quedan excluidas de ambas sucursales — son datos ambiguos, no se
+  // pueden asignar a una en particular.
+  async function calcularVentasEIngresosDeHoy(empresaId, sucursalId) {
     try {
       const snap = await db.collection('facturas').where('empresaId', '==', empresaId).get();
       const inicioHoy = inicioDeHoy();
       let ventas = 0, ingresos = 0;
       snap.forEach(doc => {
         const f = doc.data();
+        if (f.sucursalId !== sucursalId) return;
         if (f.estado !== 'Pagada') return;
         if (!f.created_at) return;
         const fecha = new Date(f.created_at);
@@ -93,7 +107,7 @@
     const [reservas, pedidos, ventasIngresos] = await Promise.all([
       contarDocumentosDeHoy('reservas', sesion.empresaId),
       contarDocumentosDeHoy('pedidos', sesion.empresaId),
-      calcularVentasEIngresosDeHoy(sesion.empresaId)
+      calcularVentasEIngresosDeHoy(sesion.empresaId, sesion.sucursalId)
     ]);
 
     statReservations.textContent = reservas === null ? '—' : reservas;

@@ -4,11 +4,12 @@
   // Marcador de versión: si al recargar la página NO ves este mensaje en
   // la consola del navegador, el archivo que se está sirviendo todavía
   // es una versión anterior de facturacion.js.
-  console.log("%c[facturacion.js] versión con caja-cerrada + cajero (v2)", "color:#2563eb;font-weight:bold;");
+  console.log("%c[facturacion.js] versión con sucursal (v3)", "color:#2563eb;font-weight:bold;");
 
   // empresaId y sesionActual ahora vienen de auth-check.js (evento
   // "sesionLista"), no de una lista hardcodeada de empresas de prueba.
   let empresaId = null;
+  let sucursalId = null;
   let sesionActual = null;
 
   const ICON_VER = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
@@ -118,7 +119,14 @@
         .get();
       const todos = [];
       snapshot.forEach(doc => {
-        todos.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        // Mismo criterio que en el resto del sistema: factura de otra
+        // sucursal (con sucursalId cargado y distinto) queda afuera;
+        // factura ambigua (sin sucursalId, de antes de este cambio) se
+        // deja pasar en todas hasta que se edite o se reclame con el
+        // botón de arriba.
+        if (data.sucursalId && data.sucursalId !== sucursalId) return;
+        todos.push({ id: doc.id, ...data });
       });
       return todos;
     } catch (error) {
@@ -914,6 +922,60 @@
     if (nextBtn) nextBtn.disabled = pagina >= totalPages;
   }
 
+  /* ============================================================
+     FACTURAS "AMBIGUAS" (sin sucursalId, de antes de este cambio)
+     ------------------------------------------------------------
+     Se ven en todas las sucursales hasta que se les asigna una. En
+     vez de obligar a editarlas una por una, este botón las asigna
+     TODAS de una sola vez a la sucursal activa.
+     ============================================================ */
+  function contarFacturasAmbiguas() {
+    return facturas.filter(f => !f.sucursalId).length;
+  }
+
+  function renderAmbiguoBanner() {
+    const banner = document.getElementById("ambiguo-banner");
+    const text = document.getElementById("ambiguo-text");
+    if (!banner || !text) return;
+    const cantidad = contarFacturasAmbiguas();
+    if (cantidad > 0) {
+      text.textContent = `${cantidad} factura(s) todavía no tienen sucursal asignada y por eso se ven en todas.`;
+      banner.style.display = "flex";
+    } else {
+      banner.style.display = "none";
+    }
+  }
+
+  async function asignarFacturasAmbiguasAEstaSucursal() {
+    const btn = document.getElementById("ambiguo-btn");
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = "Asignando...";
+    try {
+      const ambiguas = facturas.filter(f => !f.sucursalId);
+      if (!ambiguas.length) return;
+
+      const batch = db.batch();
+      ambiguas.forEach(f => {
+        batch.update(db.collection('facturas').doc(f.id), { sucursalId: sucursalId });
+      });
+      await batch.commit();
+      console.log(`✅ Se asignaron ${ambiguas.length} factura(s) a la sucursal "${sucursalId}".`);
+      await renderTodo();
+    } catch (error) {
+      console.error("Error al asignar facturas ambiguas:", error);
+      alert("No se pudieron asignar las facturas. Revisá la consola.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Asignar a esta sucursal";
+    }
+  }
+
+  function initAmbiguo() {
+    const btn = document.getElementById("ambiguo-btn");
+    if (btn) btn.addEventListener("click", asignarFacturasAmbiguasAEstaSucursal);
+  }
+
   async function renderTodo() {
     if (!empresaId) return; // todavía no llegó "sesionLista"
     const [facturasData, clientesData, productosData] = await Promise.all([
@@ -926,6 +988,7 @@
     productos = productosData;
     renderHeader();
     renderTabla();
+    renderAmbiguoBanner();
     if (clienteCombobox) clienteCombobox.setOptions(conConsumidorFinal(clientesData));
   }
 
@@ -1502,11 +1565,16 @@
       // siempre muestra quién atendió esa venta puntual, no quien la esté
       // reimprimiendo o corrigiendo después.
       const cajero = editando ? (facturaOriginal?.cajero || sesionActual?.nombre || '') : (sesionActual?.nombre || '');
-      console.log('[facturacion.js] DEBUG sesionActual completo:', sesionActual, '→ cajero calculado:', cajero);
+
+      // Sucursal: se fija al CREAR y no se pisa al editar (igual criterio
+      // que created_at y cajero) — así una factura conserva la sucursal
+      // donde se hizo la venta original, aunque se edite desde otra.
+      const sucursalFactura = editando ? (facturaOriginal?.sucursalId || sucursalId) : sucursalId;
 
       const payload = {
         codigo,
         empresaId: empresaId,
+        sucursalId: sucursalFactura,
         cajero,
         periodo: document.getElementById('op-periodo').value,
         tipoOper: document.getElementById('op-tipo-oper').value,
@@ -1916,6 +1984,7 @@
     if (guardarBtn) { guardarBtn.disabled = true; guardarBtn.textContent = 'Guardando…'; }
 
     try {
+      const facturaOriginalEditSimple = facturas.find(f => f.id === facturaEditandoSimpleId);
       const patch = {
         cliente: clienteSeleccionadoEditar ? {
           id: clienteSeleccionadoEditar.id,
@@ -1931,6 +2000,11 @@
         numeroDoc,
         subtotal: totalGs,
         total: totalGs,
+        // Reclama la factura para la sucursal activa si todavía era
+        // ambigua (sin sucursalId, de antes de este cambio) — mismo
+        // patrón que en el resto del sistema. Si ya tenía sucursalId,
+        // se preserva tal cual.
+        sucursalId: facturaOriginalEditSimple?.sucursalId || sucursalId,
         updated_at: new Date().toISOString()
       };
       await actualizarFactura(facturaEditandoSimpleId, patch);
@@ -2185,6 +2259,7 @@
       initEditarFacturaModal();
       initModalEstado();
       initConfirmacion();
+      initAmbiguo();
     }
 
     initNuevaOperacion();
@@ -2205,6 +2280,7 @@
   document.addEventListener("sesionLista", function (e) {
     sesionActual = e.detail;
     empresaId = sesionActual.empresaId;
+    sucursalId = sesionActual.sucursalId;
 
     const esPaginaFacturacionCompleta = !!document.getElementById("facturas-body");
     if (esPaginaFacturacionCompleta) {

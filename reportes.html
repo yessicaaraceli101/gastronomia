@@ -151,6 +151,18 @@
         </div>
       </div>
 
+      <!-- Gastos "ambiguos": creados antes de que inventario.js empezara a
+           guardar a qué sucursal pertenece cada gasto. Cuentan igual en
+           "Gastos totales"/"Balance neto" de todas las sucursales hasta
+           que se les asigna una — este botón lo hace de una sola vez para
+           todos. Mismo patrón que el resto del sistema; acá no hay
+           edición individual de gastos, así que es la única forma de
+           resolverlos. -->
+      <div id="ambiguo-banner" style="display:none;margin:20px 0 0;padding:10px 14px;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:8px;font-size:13px;align-items:center;justify-content:space-between;gap:10px;">
+        <span id="ambiguo-text">Hay gastos sin sucursal asignada.</span>
+        <button type="button" id="ambiguo-btn" style="background:#2563eb;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">Asignar a esta sucursal</button>
+      </div>
+
       <!-- ================= GRÁFICO (colapsado por defecto) ================= -->
       <div class="panel panel-grafico" style="margin-top:20px;">
         <div class="panel-head">
@@ -271,6 +283,6 @@
 <script src="assets/js/auth-check.js"></script>
 
 <!-- Tu archivo JS (debe ir DESPUÉS de firebase y de auth-check.js) -->
-<script src="assets/js/reportes.js?v=3"></script>
+<script src="assets/js/reportes.js?v=4"></script>
 </body>
 </html>

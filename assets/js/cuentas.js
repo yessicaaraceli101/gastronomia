@@ -12,6 +12,7 @@
   // empresaId y sesionActual vienen de auth-check.js (evento
   // "sesionLista"), no de datos hardcodeados.
   let empresaId = null;
+  let sucursalId = null;
   let sesionActual = null;
 
   let cuentas = [];
@@ -50,7 +51,16 @@
         .where('empresaId', '==', empresaId)
         .get();
       const todas = [];
-      snapshot.forEach(doc => todas.push({ id: doc.id, ...doc.data() }));
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        // Mismo criterio que en el resto del sistema: cuenta de otra
+        // sucursal (con sucursalId cargado y distinto) queda afuera;
+        // cuenta ambigua (sin sucursalId, de antes de este cambio) se
+        // deja pasar en todas hasta que se edite o se reclame con el
+        // botón de arriba.
+        if (data.sucursalId && data.sucursalId !== sucursalId) return;
+        todas.push({ id: doc.id, ...data });
+      });
       return todas;
     } catch (error) {
       console.error('Error al cargar cuentas por pagar:', error);
@@ -163,7 +173,62 @@
     if (!empresaId) return; // todavía no llegó "sesionLista"
     cuentas = await cargarCuentas();
     render();
+    renderAmbiguoBanner();
   }
+
+  /* ============================================================
+     CUENTAS "AMBIGUAS" (sin sucursalId, de antes de este cambio)
+     ------------------------------------------------------------
+     Se ven en todas las sucursales hasta que se les asigna una. En
+     vez de obligar a editarlas una por una, este botón las asigna
+     TODAS de una sola vez a la sucursal activa.
+     ============================================================ */
+  function contarCuentasAmbiguas() {
+    return cuentas.filter(c => !c.sucursalId).length;
+  }
+
+  function renderAmbiguoBanner() {
+    const banner = document.getElementById('ambiguo-banner');
+    const text = document.getElementById('ambiguo-text');
+    if (!banner || !text) return;
+    const cantidad = contarCuentasAmbiguas();
+    if (cantidad > 0) {
+      text.textContent = `${cantidad} cuenta(s) todavía no tienen sucursal asignada y por eso se ven en todas.`;
+      banner.style.display = 'flex';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  async function asignarCuentasAmbiguasAEstaSucursal() {
+    const btn = document.getElementById('ambiguo-btn');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = 'Asignando...';
+    try {
+      const ambiguas = cuentas.filter(c => !c.sucursalId);
+      if (!ambiguas.length) return;
+
+      const batch = db.batch();
+      ambiguas.forEach(c => {
+        batch.update(db.collection('cuentasPorPagar').doc(c.id), { sucursalId: sucursalId });
+      });
+      await batch.commit();
+      console.log(`✅ Se asignaron ${ambiguas.length} cuenta(s) a la sucursal "${sucursalId}".`);
+      await renderTodo();
+    } catch (error) {
+      console.error('Error al asignar cuentas ambiguas:', error);
+      alert('No se pudieron asignar las cuentas. Revisá la consola.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Asignar a esta sucursal';
+    }
+  }
+
+  (function initAmbiguo() {
+    const btn = document.getElementById('ambiguo-btn');
+    if (btn) btn.addEventListener('click', asignarCuentasAmbiguasAEstaSucursal);
+  })();
 
   pagePrev.addEventListener('click', () => { currentPage--; render(); });
   pageNext.addEventListener('click', () => { currentPage++; render(); });
@@ -216,7 +281,12 @@
       ruc: inputRuc.value.trim(),
       total: parseFloat(inputTotal.value),
       fecha: inputFecha.value,
-      estado: inputEstado.value
+      estado: inputEstado.value,
+      // Se reconstruye este objeto entero cada vez que se guarda (tanto al
+      // crear como al editar), así que agregar sucursalId acá alcanza para
+      // reclamar automáticamente cualquier cuenta ambigua (sin sucursalId,
+      // de antes de este cambio) apenas alguien la edite.
+      sucursalId: sucursalId
     };
 
     const guardarBtn = document.getElementById('guardar-nueva-cuenta');
@@ -285,6 +355,7 @@
   document.addEventListener('sesionLista', function (e) {
     sesionActual = e.detail;
     empresaId = sesionActual.empresaId;
+    sucursalId = sesionActual.sucursalId;
     currentPage = 1;
     renderTodo();
   });

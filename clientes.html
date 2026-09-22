@@ -131,6 +131,17 @@
             <input type="text" id="client-search" placeholder="Buscar cliente..." />
           </div>
         </div>
+
+        <!-- Clientes "ambiguos": creados antes de que el sistema guardara a
+             qué sucursal pertenece cada uno. Se ven en todas las sucursales
+             hasta que se les asigna una — este botón lo hace de una sola
+             vez para todos, en vez de tener que editarlos uno por uno.
+             Mismo patrón que ya se usa en Mesas, Reservas e Inventario. -->
+        <div id="ambiguo-banner" style="display:none;margin:0 24px 14px;padding:10px 14px;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:8px;font-size:13px;align-items:center;justify-content:space-between;gap:10px;">
+          <span id="ambiguo-text">Hay clientes sin sucursal asignada.</span>
+          <button type="button" id="ambiguo-btn" style="background:#2563eb;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">Asignar a esta sucursal</button>
+        </div>
+
         <div class="table-wrapper">
           <table>
             <thead>

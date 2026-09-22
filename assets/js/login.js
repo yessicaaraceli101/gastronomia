@@ -8,7 +8,7 @@
   const loginBtn = document.getElementById('login-btn');
   const errorDiv = document.getElementById('login-error');
 
-  // Mostrar/ocultar contraseña (ícono de ojo)
+
   const togglePasswordBtn = document.getElementById('toggle-password');
   const iconEye = togglePasswordBtn ? togglePasswordBtn.querySelector('.icon-eye') : null;
   const iconEyeOff = togglePasswordBtn ? togglePasswordBtn.querySelector('.icon-eye-off') : null;
@@ -262,12 +262,19 @@
         email: cred.user.email,
         empresaId: datosUsuario.empresaId,
         nombre: datosUsuario.nombre || cred.user.email,
-        rol: datosUsuario.rol || ''
+        rol: datosUsuario.rol || '',
+        // Sucursal FIJA asignada desde Usuarios (si el administrador eligió
+        // una en vez de "Todas las sucursales"). Viaja pegada a la sesión
+        // (no solo como sessionStorage.sucursalId suelto) para que
+        // auth-check.js pueda forzarla siempre y ocultar el selector,
+        // aunque alguien intente cambiar la clave suelta a mano.
+        sucursalFija: datosUsuario.sucursalId || null
       }));
 
-      // Si el usuario tiene una sucursal fija asignada en su perfil, se usa
-      // como sucursal inicial (si tiene varias habilitadas, auth-check.js
-      // igual arma el selector con todas las de la empresa).
+      // Si el usuario tiene una sucursal fija asignada en su perfil, arranca
+      // en esa. Si no tiene ninguna (Administrador con acceso a todas), no
+      // se fija nada acá — auth-check.js va a usar la primera sucursal de
+      // la lista como punto de partida.
       if (datosUsuario.sucursalId) {
         sessionStorage.setItem('sucursalId', datosUsuario.sucursalId);
       }

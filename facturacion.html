@@ -33,13 +33,6 @@
     .op-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
     .op-field.span-2 { grid-column: span 2; }
     .op-field.span-3 { grid-column: span 3; }
-    /* FIX: estas reglas (arriba) no tenían media query, así que ganaban
-       SIEMPRE por sobre las responsive de facturacion.css — que están
-       en un archivo linkeado ANTES de este <style>, así que pierden el
-       empate de especificidad por orden. Resultado: los campos del
-       modal (Cliente, CI/RUC, Método/Estado, Banco/Comprobante) se
-       quedaban apretados en 2 columnas en cualquier tamaño de pantalla.
-       Repetimos acá, con media query, para que sí ganen en mobile. */
     @media (max-width: 760px) {
       .op-grid.cols-2, .op-grid.cols-3 { grid-template-columns: repeat(2, 1fr); }
       .op-field.span-2, .op-field.span-3 { grid-column: 1 / -1; }
@@ -69,11 +62,6 @@
     }
     .op-add-row:hover { background: #f4f6ff; }
     .op-add-row svg { width: 15px; height: 15px; }
-    /* FIX: "overflow:hidden" acá tapaba el "overflow-x:auto" que ya
-       definía facturacion.css para esta clase — en vez de poder
-       scrollear la tabla de productos en mobile para ver Cant/Precio/
-       Subtotal, esas columnas quedaban directamente recortadas/ocultas
-       sin forma de llegar a ellas. */
     .op-cuentas-wrap { border: 1px solid #eef0f3; border-radius: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 16px; }
     table.op-cuentas { width: 100%; border-collapse: collapse; font-size: 13px; }
     table.op-cuentas thead th { text-align: left; background: #f7f8fa; color: #565f70; font-weight: 600; font-size: 12px; padding: 9px 10px; border-bottom: 1px solid #eef0f3; }
@@ -118,12 +106,6 @@
     .op-cobro-input:focus { outline: none; border-color: #22c55e; box-shadow: 0 0 0 4px rgba(34,197,94,0.2); }
     .op-cobro-vuelto { font-size: 56px; font-weight: 900; color: #166534; padding: 18px 18px; display: flex; align-items: center; }
     .op-cobro-vuelto.negativo { color: #b3261e; }
-    /* FIX: este bloque (Monto recibido / Vuelto) nunca tuvo una regla
-       responsive. En mobile, dos columnas + gap:32px + padding:36px +
-       texto de 48/56px son más anchas que la pantalla y estiran TODO
-       el modal (y con él, toda la página) hacia los costados, causando
-       scroll horizontal. Con esto pasa a una sola columna y tamaños
-       razonables en pantallas chicas. */
     @media (max-width: 700px) {
       .op-cobro-rapido {
         grid-template-columns: 1fr;
@@ -166,7 +148,6 @@
 </head>
 <body>
 <div class="app">
-  <!-- Sidebar -->
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-mark">—</div>
@@ -222,10 +203,6 @@
       </div>
     </div>
 
-    <!-- Botón SALIR fijo en el HTML, justo debajo del último grupo
-         (Finanzas / Formas de pago) — su posición no depende de que
-         auth-check.js se haya actualizado/cacheado bien; ese script
-         solo le engancha el evento de clic. -->
     <div class="sidebar-footer" id="sidebar-footer">
       <button type="button" class="sidebar-logout-btn" id="sidebar-logout-btn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -235,7 +212,6 @@
   </aside>
 
   <main class="main">
-    <!-- Topbar -->
     <div class="topbar">
       <div>
         <h1>Facturación</h1>
@@ -289,6 +265,18 @@
             </button>
                       </div>
         </div>
+
+        <!-- Facturas "ambiguas": creadas antes de que el sistema guardara a
+             qué sucursal pertenece cada una. Se ven en todas las sucursales
+             hasta que se les asigna una — este botón lo hace de una sola
+             vez para todas, en vez de tener que editarlas una por una.
+             Mismo patrón que ya se usa en Mesas, Reservas, Clientes,
+             Cuentas por pagar e Inventario. -->
+        <div id="ambiguo-banner" style="display:none;margin:0 24px 14px;padding:10px 14px;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:8px;font-size:13px;align-items:center;justify-content:space-between;gap:10px;">
+          <span id="ambiguo-text">Hay facturas sin sucursal asignada.</span>
+          <button type="button" id="ambiguo-btn" style="background:#2563eb;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">Asignar a esta sucursal</button>
+        </div>
+
         <div class="table-wrapper">
           <table id="facturas-table">
             <thead>
@@ -324,7 +312,6 @@
   </main>
 </div>
 
-<!-- ========== MODAL NUEVA OPERACIÓN ========== -->
 <div class="op-overlay" id="op-overlay">
   <div class="op-card">
     <div class="op-head">
@@ -473,7 +460,6 @@
           </div>
         </div>
 
-        <!-- NUEVO: preparación para factura electrónica (SIFEN) -->
         <div class="op-grid cols-3">
           <div class="op-field">
             <label>Condición de venta</label>
@@ -521,7 +507,6 @@
             </select>
           </div>
         </div>
-        <!-- FIN NUEVO -->
 
         <div class="op-grid cols-3">
           <div class="op-field">
@@ -754,8 +739,6 @@
   </div>
 </div>
 
-<!-- Aviso de caja cerrada: bloquea el registro de una venta nueva si la
-     caja correspondiente al método de pago elegido no está abierta. -->
 <div class="modal-overlay" id="caja-cerrada-overlay">
   <div class="confirm-card">
     <div class="confirm-icon">

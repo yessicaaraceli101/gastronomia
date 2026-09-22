@@ -4,6 +4,7 @@
   // empresaId y sesionActual ahora vienen de auth-check.js (evento
   // "sesionLista"), no de una lista hardcodeada de empresas de prueba.
   let empresaId = null;
+  let sucursalId = null;
   let sesionActual = null;
 
   let moneda = "Gs";
@@ -41,7 +42,13 @@
 
       const todos = [];
       snapshot.forEach(doc => {
-        todos.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        // Cada sucursal tiene su propio stock físico — mismo criterio que
+        // "productos" en facturacion.js/menu.js. Si el insumo no tiene
+        // sucursalId (de antes de este cambio), se deja pasar igual: no
+        // hay forma de saber a qué sucursal pertenecía.
+        if (data.sucursalId && data.sucursalId !== sucursalId) return;
+        todos.push({ id: doc.id, ...data });
       });
       return todos;
     } catch (error) {
@@ -52,7 +59,10 @@
 
   // Misma colección 'proveedores' que usa proveedores.js, filtrada por la
   // empresa activa — así el buscador del modal de insumo lista los mismos
-  // proveedores que ya están cargados en la sección Proveedores.
+  // proveedores que ya están cargados en la sección Proveedores. Los
+  // proveedores SÍ se comparten entre sucursales de una misma empresa
+  // (mismo criterio que "clientes" en facturacion.js): un mismo proveedor
+  // suele entregar a más de una sucursal.
   async function cargarProveedores() {
     try {
       const snapshot = await db.collection('proveedores')
@@ -72,6 +82,7 @@
   async function crearInsumo(datos) {
     try {
       datos.empresaId = empresaId; // Asignar automáticamente la empresa activa
+      datos.sucursalId = sucursalId; // y la sucursal activa (stock físico por sucursal)
       const docRef = await db.collection('insumos').add(datos);
       console.log("Insumo creado correctamente");
       return docRef.id;
@@ -126,6 +137,7 @@
       const verbo = motivo === 'inicial' ? 'Stock inicial de' : (motivo === 'ajuste' ? 'Ajuste de stock de' : 'Compra de');
       const datos = {
         empresaId: empresaId,
+        sucursalId: sucursalId,
         fecha: ahora.toISOString().slice(0, 10),
         created_at: ahora.toISOString(),
         categoria: 'Inventario',
@@ -144,6 +156,60 @@
       console.error("Error al registrar el gasto de inventario:", error);
       return { ok: false, error };
     }
+  }
+
+  /* ============================================================
+     INSUMOS "AMBIGUOS" (sin sucursalId, de antes de este cambio)
+     ------------------------------------------------------------
+     Se ven en todas las sucursales hasta que se les asigna una. En
+     vez de obligar a editarlos uno por uno, este botón los asigna
+     TODOS de una sola vez a la sucursal activa.
+     ============================================================ */
+  function contarInsumosAmbiguos() {
+    return insumos.filter(i => !i.sucursalId).length;
+  }
+
+  function renderAmbiguoBanner() {
+    const banner = document.getElementById("ambiguo-banner");
+    const text = document.getElementById("ambiguo-text");
+    if (!banner || !text) return;
+    const cantidad = contarInsumosAmbiguos();
+    if (cantidad > 0) {
+      text.textContent = `${cantidad} insumo(s) todavía no tienen sucursal asignada y por eso se ven en todas.`;
+      banner.style.display = "flex";
+    } else {
+      banner.style.display = "none";
+    }
+  }
+
+  async function asignarInsumosAmbiguosAEstaSucursal() {
+    const btn = document.getElementById("ambiguo-btn");
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = "Asignando...";
+    try {
+      const ambiguos = insumos.filter(i => !i.sucursalId);
+      if (!ambiguos.length) return;
+
+      const batch = db.batch();
+      ambiguos.forEach(i => {
+        batch.update(db.collection('insumos').doc(i.id), { sucursalId: sucursalId });
+      });
+      await batch.commit();
+      console.log(`✅ Se asignaron ${ambiguos.length} insumo(s) a la sucursal "${sucursalId}".`);
+      await renderTodo();
+    } catch (error) {
+      console.error("Error al asignar insumos ambiguos:", error);
+      alert("No se pudieron asignar los insumos. Revisá la consola.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Asignar a esta sucursal";
+    }
+  }
+
+  function initAmbiguo() {
+    const btn = document.getElementById("ambiguo-btn");
+    if (btn) btn.addEventListener("click", asignarInsumosAmbiguosAEstaSucursal);
   }
 
   /* ============================================================
@@ -230,6 +296,7 @@
     insumos = todos;
     renderHeader();
     renderTabla();
+    renderAmbiguoBanner();
   }
 
   /* ============================================================
@@ -406,7 +473,14 @@
       costoCompra,
       costoUnitario,
       cantidad,
-      minimo
+      minimo,
+      // Al editar un insumo VIEJO que todavía no tenía sucursalId (de
+      // antes de este cambio), esto lo "reclama" para la sucursal desde
+      // la que se está editando — así deja de mostrarse en todas y pasa a
+      // pertenecer solo a esta, resolviendo la ambigüedad la primera vez
+      // que alguien lo toca. Si ya tenía sucursalId, esto simplemente lo
+      // reafirma (no cambia nada).
+      sucursalId
     };
 
     try {
@@ -689,6 +763,7 @@
     initSearch();
     initFilters();
     initCurrencyToggle();
+    initAmbiguo();
   });
 
   // auth-check.js valida la sesión, carga la empresa/sucursal real del
@@ -697,6 +772,7 @@
   document.addEventListener("sesionLista", function (e) {
     sesionActual = e.detail;
     empresaId = sesionActual.empresaId;
+    sucursalId = sesionActual.sucursalId;
     renderTodo();
 
     // Actualización cada 30 segundos para mantener el inventario fresco

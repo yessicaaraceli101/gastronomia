@@ -389,10 +389,16 @@
     // (ya no otras empresas) — se elige sucursal, no se cambia de negocio.
     // Elegir una sucursal distinta ahora pide confirmar la contraseña
     // (ver cambiarSucursal / abrirModalCambioSucursal más arriba).
+    //
+    // Si el usuario tiene sucursal FIJA asignada (sesion.sucursalFija), no
+    // tiene sentido mostrarle las demás como si pudiera elegirlas — se
+    // reemplaza el desplegable por un aviso.
     const menu = document.getElementById("company-menu-list");
     if (menu) {
       menu.innerHTML = "";
-      if (sesion.sucursales.length <= 1) {
+      if (sesion.sucursalFija) {
+        menu.innerHTML = `<div style="padding:14px 16px; font-size:12.5px; color:#9ca3af;">Tu cuenta está asignada a esta sucursal. Para cambiar, contactá al administrador.</div>`;
+      } else if (sesion.sucursales.length <= 1) {
         menu.innerHTML = `<div style="padding:14px 16px; font-size:12.5px; color:#9ca3af;">Esta empresa todavía no tiene otras sucursales cargadas.</div>`;
       } else {
         sesion.sucursales.forEach(s => {
@@ -503,7 +509,14 @@
       const sucursales = [];
       sucursalesSnap.forEach(doc => sucursales.push({ id: doc.id, ...doc.data() }));
 
-      const sucursalGuardada = sessionStorage.getItem('sucursalId');
+      // Si el usuario tiene una sucursal FIJA asignada (sessionData.sucursalFija,
+      // guardada por login.js desde el perfil en Firestore), esa gana
+      // siempre — sin importar qué diga la clave suelta sessionStorage
+      // 'sucursalId' (que es la que se usa para el punto de partida de un
+      // usuario SIN restricción, o para recordar la última sucursal
+      // elegida entre recargas). Así un empleado con sucursal fija no
+      // puede terminar en otra ni manipulando esa clave a mano.
+      const sucursalGuardada = sessionData.sucursalFija || sessionStorage.getItem('sucursalId');
       const sucursalActual =
         sucursales.find(s => s.id === sucursalGuardada) ||
         sucursales[0] ||
@@ -517,7 +530,11 @@
         empresaNombre: empresa.nombre || 'Empresa',
         sucursales: sucursales,
         sucursalId: sucursalActual.id,
-        sucursalNombre: sucursalActual.nombre
+        sucursalNombre: sucursalActual.nombre,
+        // Si tiene sucursal fija, pintarTopbar() oculta el selector en vez
+        // de listar las demás sucursales — no tiene sentido mostrárselas
+        // si de todos modos no las puede elegir.
+        sucursalFija: sessionData.sucursalFija || null
       };
 
       pintarTopbar(window.sesion);

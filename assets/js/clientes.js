@@ -4,6 +4,7 @@
   // empresaId y sesionActual ahora vienen de auth-check.js (evento
   // "sesionLista"), no de una lista hardcodeada de empresas de prueba.
   let empresaId = null;
+  let sucursalId = null;
   let sesionActual = null;
 
   const ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
@@ -36,7 +37,14 @@
         .get();
       const lista = [];
       snapshot.forEach(doc => {
-        lista.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        // Mismo criterio que en el resto del sistema: cliente de otra
+        // sucursal (con sucursalId cargado y distinto) queda afuera;
+        // cliente ambiguo (sin sucursalId, de antes de este cambio) se
+        // deja pasar en todas hasta que se edite o se reclame con el
+        // botón de arriba.
+        if (data.sucursalId && data.sucursalId !== sucursalId) return;
+        lista.push({ id: doc.id, ...data });
       });
       return lista;
     } catch (error) {
@@ -131,11 +139,61 @@
     else if (action === "delete") confirmarEliminar(id);
   }
 
+  /* ============================================================
+     CLIENTES "AMBIGUOS" (sin sucursalId, de antes de este cambio)
+     ------------------------------------------------------------
+     Se ven en todas las sucursales hasta que se les asigna una. En
+     vez de obligar a editarlos uno por uno, este botón los asigna
+     TODOS de una sola vez a la sucursal activa.
+     ============================================================ */
+  function contarClientesAmbiguos() {
+    return clientes.filter(c => !c.sucursalId).length;
+  }
+
+  function renderAmbiguoBanner() {
+    const banner = document.getElementById("ambiguo-banner");
+    const text = document.getElementById("ambiguo-text");
+    if (!banner || !text) return;
+    const cantidad = contarClientesAmbiguos();
+    if (cantidad > 0) {
+      text.textContent = `${cantidad} cliente(s) todavía no tienen sucursal asignada y por eso se ven en todas.`;
+      banner.style.display = "flex";
+    } else {
+      banner.style.display = "none";
+    }
+  }
+
+  async function asignarClientesAmbiguosAEstaSucursal() {
+    const btn = document.getElementById("ambiguo-btn");
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = "Asignando...";
+    try {
+      const ambiguos = clientes.filter(c => !c.sucursalId);
+      if (!ambiguos.length) return;
+
+      const batch = db.batch();
+      ambiguos.forEach(c => {
+        batch.update(db.collection('clientes').doc(c.id), { sucursalId: sucursalId });
+      });
+      await batch.commit();
+      console.log(`✅ Se asignaron ${ambiguos.length} cliente(s) a la sucursal "${sucursalId}".`);
+      await renderTodo();
+    } catch (error) {
+      console.error("Error al asignar clientes ambiguos:", error);
+      alert("No se pudieron asignar los clientes. Revisá la consola.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Asignar a esta sucursal";
+    }
+  }
+
   async function renderTodo() {
     if (!empresaId) return; // todavía no llegó "sesionLista"
     clientes = await cargarClientesDesdeFirebase();
     renderHeader();
     renderTabla();
+    renderAmbiguoBanner();
   }
 
   /* ============================================================
@@ -189,6 +247,12 @@
 
     const cliente = {
       empresaId: empresaId,
+      // Como este objeto se reconstruye entero cada vez que se guarda
+      // (tanto al crear como al editar), agregar sucursalId acá alcanza
+      // para reclamar automáticamente cualquier cliente ambiguo (sin
+      // sucursalId, de antes de este cambio) apenas alguien lo edite —
+      // sin necesitar lógica aparte para ese caso.
+      sucursalId: sucursalId,
       name,
       ciRuc: ciRuc || "",
       phone: phone || "",
@@ -258,6 +322,11 @@
     document.getElementById("clientes-body").addEventListener("click", onTableClick);
   }
 
+  function initAmbiguo() {
+    const btn = document.getElementById("ambiguo-btn");
+    if (btn) btn.addEventListener("click", asignarClientesAmbiguosAEstaSucursal);
+  }
+
   // El selector de empresa/sucursal (abrir/cerrar menú, "Agregar empresa",
   // pintar opciones) ahora lo maneja auth-check.js igual que en el resto
   // de las páginas — ya no hace falta duplicar esa lógica acá.
@@ -293,6 +362,7 @@
     initPagination();
     initTable();
     initModal();
+    initAmbiguo();
   });
 
   // auth-check.js valida la sesión, carga la empresa/sucursal real del
@@ -301,6 +371,7 @@
   document.addEventListener("sesionLista", function (e) {
     sesionActual = e.detail;
     empresaId = sesionActual.empresaId;
+    sucursalId = sesionActual.sucursalId;
     pagina = 1;
     renderTodo();
   });
