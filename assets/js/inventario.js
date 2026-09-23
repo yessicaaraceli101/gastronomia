@@ -23,6 +23,12 @@
   let proveedorCombobox = null;
 
   const symbols = { "US$": "$", "Gs": "Gs. ", "R$": "R$" };
+  // ⚠️ FIX: antes formatoMoneda() solo le pegaba el símbolo elegido al
+  // mismo número guardado en Gs, sin dividir ni multiplicar nada — el
+  // costo por unidad se veía igual en Gs/US$/R$, solo cambiaba el
+  // símbolo. Mismas tasas que ya usan facturacion.js, reportes.js y
+  // dashboard.js: 1 US$ = 7300 Gs, 1 US$ = 5.4 R$.
+  const rates = { "US$": 7300, "Gs": 1, "R$": 7300 / 5.4 };
 
   const ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
   const ICON_DELETE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>';
@@ -228,10 +234,17 @@
     return { label: 'Suficiente', class: 'ok' };
   }
 
-  function formatoMoneda(valor) {
+  // "valor" siempre llega guardado en Gs (así se cargan costoUnitario y
+  // costoCompra en este archivo). Se convierte a la moneda elegida antes
+  // de mostrarlo — antes esta función no convertía nada, así que el
+  // costo por unidad se veía idéntico en Gs/US$/R$, solo cambiando el
+  // símbolo.
+  function formatoMoneda(valorGs) {
     const symbol = symbols[moneda] || "";
-    const num = Number(valor) || 0;
-    return `${symbol}${num.toLocaleString('es-PY', { maximumFractionDigits: 2 })}`;
+    const num = Number(valorGs) || 0;
+    const convertido = moneda === "Gs" ? num : num / rates[moneda];
+    const maximoDecimales = moneda === "Gs" ? 0 : 2;
+    return `${symbol}${convertido.toLocaleString('es-PY', { maximumFractionDigits: maximoDecimales })}`;
   }
 
   // Muestra el ID completo si es corto, o lo recorta con "…" si es muy largo
@@ -437,12 +450,19 @@
   }
 
   function actualizarPreviaCostoUnitario() {
+    // Lo que se tipea en "Costo por unidad de compra" siempre se guarda
+    // en Gs (igual que costoUnitario/costoCompra en el resto del
+    // archivo), sin importar qué moneda esté elegida arriba en el
+    // topbar — por eso se convierte acá antes de mostrarlo, igual que en
+    // formatoMoneda().
     const costoCompra = parseFloat(document.getElementById("input-costo-compra").value) || 0;
     const factor = parseFloat(document.getElementById("input-factor-conversion").value) || 1;
-    const costoUnitario = factor > 0 ? costoCompra / factor : 0;
+    const costoUnitarioGs = factor > 0 ? costoCompra / factor : 0;
     const symbol = symbols[moneda] || "";
+    const convertido = moneda === "Gs" ? costoUnitarioGs : costoUnitarioGs / rates[moneda];
+    const maximoDecimales = moneda === "Gs" ? 0 : 2;
     document.getElementById("preview-costo-unitario").textContent =
-      `${symbol}${costoUnitario.toLocaleString('es-PY', { maximumFractionDigits: 2 })} / ${document.getElementById("input-unidad").value || 'unidad'}`;
+      `${symbol}${convertido.toLocaleString('es-PY', { maximumFractionDigits: maximoDecimales })} / ${document.getElementById("input-unidad").value || 'unidad'}`;
   }
 
   async function guardarNuevoInsumo() {

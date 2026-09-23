@@ -4,6 +4,33 @@
   let moneda = 'GS';
   const symbols = { 'GS': 'Gs. ', 'USD': '$', 'BRL': 'R$' };
 
+  // ⚠️ FIX: antes no existía ninguna tasa de cambio acá — el texto solo
+  // le pegaba el símbolo de la moneda elegida (Gs./US$/R$) al mismo
+  // número guardado en guaraníes, sin dividir ni multiplicar nada, así
+  // que "Ingresos de hoy" mostraba siempre el mismo valor (ej. 7.000)
+  // cambiando solo el símbolo. Mismas tasas que ya usan facturacion.js y
+  // reportes.js: 1 US$ = 7300 Gs, 1 US$ = 5.4 R$.
+  const RATE_USD_EN_GS = 7300;
+  const RATE_BRL_POR_USD = 5.4;
+
+  // Convierte un monto guardado en Gs (como siempre se guardan las
+  // facturas) a la moneda actualmente seleccionada, y le agrega el
+  // símbolo correspondiente.
+  function formatearMonto(valorGs) {
+    const v = Number(valorGs) || 0;
+    const simbolo = symbols[moneda] || '';
+    if (moneda === 'GS') {
+      return `${simbolo}${Math.round(v).toLocaleString('es-PY')}`;
+    }
+    if (moneda === 'USD') {
+      return `${simbolo}${(v / RATE_USD_EN_GS).toFixed(2)}`;
+    }
+    if (moneda === 'BRL') {
+      return `${simbolo}${((v / RATE_USD_EN_GS) * RATE_BRL_POR_USD).toFixed(2)}`;
+    }
+    return `${simbolo}${Math.round(v).toLocaleString('es-PY')}`;
+  }
+
   // ========== DOM ELEMENTS ==========
   const branchDate = document.getElementById('branch-date');
 
@@ -115,7 +142,7 @@
     statGuests.textContent = ventasIngresos.ventas === null ? '—' : ventasIngresos.ventas;
     statRevenue.textContent = ventasIngresos.ingresos === null
       ? '—'
-      : symbols[moneda] + Math.round(ventasIngresos.ingresos).toLocaleString('es-PY');
+      : formatearMonto(ventasIngresos.ingresos);
   }
 
   function renderFecha(sesion) {
