@@ -19,6 +19,7 @@
   let nuevoPedidoItems = [];
   let editPedidoItems = [];
   let editPedidoId = null;
+  let eliminarPedidoId = null;
 
   const rates = { "US$": 1, "Gs": 7300, "R$": 5.4 };
   const symbols = { "US$": "$", "Gs": "Gs. ", "R$": "R$" };
@@ -121,6 +122,18 @@
       console.log(`✅ Pedido ${id} actualizado`);
     } catch (error) {
       console.error("❌ Error al actualizar pedido:", error);
+      throw error;
+    }
+  }
+
+  // Elimina el pedido de Firestore. Solo se ofrece para pedidos que ya
+  // están en la lista (o sea, de esta empresa y sucursal).
+  async function eliminarPedidoFirestore(id) {
+    try {
+      await db.collection('pedidos').doc(id).delete();
+      console.log(`🗑️ Pedido ${id} eliminado`);
+    } catch (error) {
+      console.error("❌ Error al eliminar pedido:", error);
       throw error;
     }
   }
@@ -354,6 +367,7 @@
   const ICON_VER = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
   const ICON_CHECK = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`;
   const ICON_EDITAR = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+  const ICON_ELIMINAR = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>`;
 
   function renderTabla() {
     const tbody = document.getElementById("pedidos-body");
@@ -407,12 +421,14 @@
             <button class="btn-accion ver" data-id="${p.id}" title="Ver detalle">${ICON_VER}</button>
             <button class="btn-accion registrar" data-id="${p.id}" title="Registrar pedido">${ICON_CHECK}</button>
             <button class="btn-accion editar" data-id="${p.id}" title="Editar pedido">${ICON_EDITAR}</button>
+            <button class="btn-accion eliminar" data-id="${p.id}" title="Eliminar pedido">${ICON_ELIMINAR}</button>
           </td>
         </tr>`;
 
         tr.querySelector(".ver").addEventListener("click", () => abrirDetalle(p.id));
         tr.querySelector(".registrar").addEventListener("click", () => abrirModalRegistrar(p.id));
         tr.querySelector(".editar").addEventListener("click", () => abrirModalEditarPedido(p.id));
+        tr.querySelector(".eliminar").addEventListener("click", () => abrirModalEliminar(p.id));
         tbody.appendChild(tr);
       });
     }
@@ -496,6 +512,121 @@
         cerrarModalEstado();
       }
     });
+  }
+
+  /* ============================================================
+     ELIMINAR PEDIDO (modal de confirmación)
+     ------------------------------------------------------------
+     El modal se crea desde acá (una sola vez), con las mismas clases
+     que los demás modales de la página (modal-overlay / modal-card),
+     así no hace falta tocar pedidos.html.
+     ============================================================ */
+  function asegurarModalEliminar() {
+    if (document.getElementById("eliminar-modal-overlay")) return;
+
+    if (!document.getElementById("eliminar-modal-style")) {
+      const style = document.createElement("style");
+      style.id = "eliminar-modal-style";
+      style.textContent = `
+        #eliminar-modal-overlay .modal-card{max-width:420px;width:95%;}
+        #eliminar-modal-overlay .eliminar-icono{width:48px;height:48px;border-radius:50%;
+          border:2px solid #dc2626;color:#dc2626;display:flex;align-items:center;
+          justify-content:center;margin:4px auto 14px;}
+        #eliminar-modal-overlay .eliminar-icono svg{width:22px;height:22px;}
+        #eliminar-modal-overlay .eliminar-texto{text-align:center;color:#374151;
+          font-size:15px;margin:0 0 6px;}
+        #eliminar-modal-overlay .eliminar-resumen{text-align:center;color:#6b7280;
+          font-size:13.5px;margin:0 0 4px;}
+        #eliminar-modal-overlay .eliminar-aviso{text-align:center;color:#dc2626;
+          font-size:13px;font-weight:600;margin:10px 0 0;}
+        #eliminar-modal-overlay .eliminar-error{text-align:center;color:#dc2626;
+          font-size:13px;min-height:18px;margin-top:8px;}
+        #eliminar-modal-overlay .btn-eliminar{background:#dc2626;border-color:#dc2626;color:#fff;}
+        #eliminar-modal-overlay .btn-eliminar:hover{background:#b91c1c;border-color:#b91c1c;}
+        #eliminar-modal-overlay .btn-eliminar:disabled{opacity:.6;cursor:not-allowed;}
+        .btn-accion.eliminar:hover svg{stroke:#991b1b;}
+      `;
+      document.head.appendChild(style);
+    }
+
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    overlay.id = "eliminar-modal-overlay";
+    overlay.innerHTML = `
+      <div class="modal-card" role="alertdialog" aria-labelledby="eliminar-modal-titulo">
+        <div class="modal-head">
+          <h3 id="eliminar-modal-titulo">Eliminar pedido</h3>
+          <button class="modal-close" id="eliminar-modal-close" type="button" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="eliminar-icono">${ICON_ELIMINAR.replace('width="17" height="17"', 'width="22" height="22"')}</div>
+          <p class="eliminar-texto">¿Seguro que querés eliminar el pedido <strong id="eliminar-modal-id">—</strong>?</p>
+          <p class="eliminar-resumen" id="eliminar-modal-resumen"></p>
+          <p class="eliminar-aviso">Esta acción no se puede deshacer.</p>
+          <div class="eliminar-error" id="eliminar-modal-error"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn" id="eliminar-modal-cancelar">Cancelar</button>
+          <button type="button" class="btn btn-eliminar" id="eliminar-modal-confirmar">Eliminar pedido</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    document.getElementById("eliminar-modal-close").addEventListener("click", cerrarModalEliminar);
+    document.getElementById("eliminar-modal-cancelar").addEventListener("click", cerrarModalEliminar);
+    document.getElementById("eliminar-modal-confirmar").addEventListener("click", confirmarEliminarPedido);
+    overlay.addEventListener("click", function (e) { if (e.target === this) cerrarModalEliminar(); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && overlay.classList.contains("open")) cerrarModalEliminar();
+    });
+  }
+
+  function abrirModalEliminar(id) {
+    const pedido = pedidos.find(p => p.id === id);
+    if (!pedido) return;
+    asegurarModalEliminar();
+    eliminarPedidoId = id;
+
+    document.getElementById("eliminar-modal-id").textContent = (id || "").slice(0, 20).toUpperCase();
+    const cliente = pedido.customer?.name || "Sin nombre";
+    document.getElementById("eliminar-modal-resumen").textContent =
+      `${cliente} · ${getItemsSummary(pedido.items)} · ${formatearPrecio(calcularTotalFinal(pedido))}`;
+    document.getElementById("eliminar-modal-error").textContent = "";
+
+    const btn = document.getElementById("eliminar-modal-confirmar");
+    btn.disabled = false;
+    btn.textContent = "Eliminar pedido";
+
+    document.getElementById("eliminar-modal-overlay").classList.add("open");
+    document.getElementById("eliminar-modal-cancelar").focus();
+  }
+
+  function cerrarModalEliminar() {
+    const overlay = document.getElementById("eliminar-modal-overlay");
+    if (overlay) overlay.classList.remove("open");
+    eliminarPedidoId = null;
+  }
+
+  async function confirmarEliminarPedido() {
+    if (!eliminarPedidoId) return;
+    const btn = document.getElementById("eliminar-modal-confirmar");
+    const errorEl = document.getElementById("eliminar-modal-error");
+    btn.disabled = true;
+    btn.textContent = "Eliminando...";
+    errorEl.textContent = "";
+    try {
+      await eliminarPedidoFirestore(eliminarPedidoId);
+      cerrarModalEliminar();
+      await renderTodo();
+    } catch (error) {
+      const sinPermiso = String(error && error.message).toLowerCase().includes("permission");
+      errorEl.textContent = sinPermiso
+        ? "No tenés permiso para eliminar pedidos. Revisá las reglas de Firestore."
+        : "No se pudo eliminar el pedido. Revisá tu conexión e intentá de nuevo.";
+      btn.disabled = false;
+      btn.textContent = "Eliminar pedido";
+    }
   }
 
   /* ============================================================
