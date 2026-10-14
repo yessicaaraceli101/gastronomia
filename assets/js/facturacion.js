@@ -4,7 +4,7 @@
   // Marcador de versión: si al recargar la página NO ves este mensaje en
   // la consola del navegador, el archivo que se está sirviendo todavía
   // es una versión anterior de facturacion.js.
-  console.log("%c[facturacion.js] versión con sucursal (v3)", "color:#2563eb;font-weight:bold;");
+  console.log("%c[facturacion.js] versión con sucursal + pago mixto + titular (v5)", "color:#2563eb;font-weight:bold;");
 
   // empresaId y sesionActual ahora vienen de auth-check.js (evento
   // "sesionLista"), no de una lista hardcodeada de empresas de prueba.
@@ -435,7 +435,7 @@
     const items = factura.items || [];
 
     const anchoMM = 80;
-    const altoMM = 95 + items.length * 6;
+    const altoMM = 95 + items.length * 6 + (factura.metodoPago === METODO_MIXTO ? 8 : 0) + (factura.titularTransferencia ? 4 : 0);
     const doc = new jsPDF({ unit: 'mm', format: [anchoMM, altoMM] });
 
     let y = 8;
@@ -458,6 +458,13 @@
     doc.text(`Cliente: ${factura.cliente?.name || '—'}`, 4, y); y += 4;
     if (factura.mesa) { doc.text(`Mesa: ${factura.mesa}`, 4, y); y += 4; }
     doc.text(`Método: ${factura.metodoPago || factura.metodo || '—'}`, 4, y); y += 4;
+    if (factura.metodoPago === METODO_MIXTO) {
+      doc.text(`  Efectivo: ${formatearPrecioEnMoneda(factura.montoEfectivo || 0, monedaFactura)}`, 4, y); y += 4;
+      doc.text(`  Transferencia: ${formatearPrecioEnMoneda(factura.montoTransferencia || 0, monedaFactura)}`, 4, y); y += 4;
+    }
+    if (factura.titularTransferencia) {
+      doc.text(`Transfirió: ${String(factura.titularTransferencia).slice(0, 34)}`, 4, y); y += 4;
+    }
     doc.text(`Cajero: ${factura.cajero || '—'}`, 4, y); y += 4;
 
     doc.line(4, y, anchoMM - 4, y); y += 5;
@@ -621,10 +628,10 @@
     }
     const filasReceptor = [
       filaMeta('Receptor', factura.cliente?.name || '—', 'RUC / CI', factura.cliente?.ci || '—'),
-      ['Método de pago', factura.metodoPago || '—', extraLabel, extraValor]
+      ['Método de pago', textoMetodoPago(factura), extraLabel, extraValor]
     ];
-    if (factura.metodoPago === 'Transferencia' && factura.banco) {
-      filasReceptor.push(filaMeta('Banco', factura.banco, '', ''));
+    if ((factura.metodoPago === 'Transferencia' || factura.metodoPago === METODO_MIXTO) && (factura.banco || factura.titularTransferencia)) {
+      filasReceptor.push(filaMeta('Banco', factura.banco || '—', factura.titularTransferencia ? 'Transfirió' : '', factura.titularTransferencia || ''));
     }
     y = tablaMeta(doc, filasReceptor, y, margenIzq, margenDer) + 9;
 
@@ -897,7 +904,7 @@
           <td>${formatearFecha(f.created_at)}</td>
           <td>${f.cliente?.name || "—"}</td>
           <td title="${fullItemList}">${itemsSummary}</td>
-          <td>${f.metodoPago || f.metodo || "—"}</td>
+          <td title="${textoMetodoPago(f)}">${f.metodoPago || f.metodo || "—"}</td>
           <td>${formatearPrecio(total)}</td>
           <td><span class="estado ${f.estado || 'Pendiente'}">${estadoLabel}</span></td>
           <td style="display: flex; gap: 4px; justify-content: center; align-items: center; flex-wrap: nowrap;">
@@ -1112,6 +1119,10 @@
     const bancoWrap = document.getElementById('op-banco-wrap');
     if (bancoWrap) bancoWrap.classList.remove('visible');
     setVal('op-monto-recibido', '');
+    setVal('op-mixto-efectivo', '');
+    setVal('op-mixto-transferencia', '');
+    setVal('op-titular-transf', '');
+    mixtoUltimoEditado = 'efectivo';
     actualizarVisibilidadCobroRapido();
     setVal('op-subtotal', '0');
     setVal('op-no-gravada', '0');
@@ -1207,6 +1218,7 @@
     setVal('op-fec-vcto', factura.fecVcto || hoy());
     setVal('op-metodo-pago', factura.metodoPago || 'Efectivo');
     setVal('op-banco', factura.banco || '');
+    setVal('op-titular-transf', factura.titularTransferencia || '');
     setVal('op-estado', factura.estado || 'Pagada');
 
     // NUEVO: precargar campos de preparación fiscal si la factura ya los tiene
@@ -1222,11 +1234,19 @@
 
     const bancoWrap = document.getElementById('op-banco-wrap');
     if (bancoWrap) {
-      if (factura.metodoPago === 'Transferencia') bancoWrap.classList.add('visible');
+      if (factura.metodoPago === 'Transferencia' || factura.metodoPago === METODO_MIXTO) bancoWrap.classList.add('visible');
       else bancoWrap.classList.remove('visible');
     }
 
     setVal('op-monto-recibido', '');
+    if (factura.metodoPago === METODO_MIXTO) {
+      setVal('op-mixto-efectivo', fmtMoneda(convertirDeGs(factura.montoEfectivo || 0, monedaFactura), monedaFactura));
+      setVal('op-mixto-transferencia', fmtMoneda(convertirDeGs(factura.montoTransferencia || 0, monedaFactura), monedaFactura));
+    } else {
+      setVal('op-mixto-efectivo', '');
+      setVal('op-mixto-transferencia', '');
+    }
+    mixtoUltimoEditado = 'efectivo';
     actualizarVisibilidadCobroRapido();
 
     // noGravada se guarda siempre en Gs; hay que re-mostrarlo en la moneda
@@ -1428,6 +1448,7 @@
     const noGrav = Number(noGravadaEl.value) || 0;
     const monedaActual = monedaEl.value;
     totalEl.value = fmtMoneda(sub + noGrav, monedaActual);
+    completarMixto();
     recalcularVuelto();
   }
 
@@ -1457,7 +1478,10 @@
     if (!totalEl || !recibidoEl || !vueltoEl || !monedaEl) return;
 
     const monedaActual = monedaEl.value;
-    const totalNumerico = Number(String(totalEl.value || '0').replace(/\./g, '').replace(',', '.')) || 0;
+    const metodoVueltoEl = document.getElementById('op-metodo-pago');
+    const totalNumerico = (metodoVueltoEl && metodoVueltoEl.value === METODO_MIXTO)
+      ? leerMontoMixto('efectivo')
+      : (Number(String(totalEl.value || '0').replace(/\./g, '').replace(',', '.')) || 0);
     const recibidoDigitos = recibidoEl.value.replace(/[^\d]/g, '');
     const recibido = recibidoDigitos ? Number(recibidoDigitos) : 0;
     const vuelto = recibido - totalNumerico;
@@ -1471,7 +1495,178 @@
     const metodoEl = document.getElementById('op-metodo-pago');
     const cobroRapido = document.getElementById('op-cobro-rapido');
     if (!metodoEl || !cobroRapido) return;
-    cobroRapido.classList.toggle('visible', metodoEl.value === 'Efectivo');
+    const esMixto = metodoEl.value === METODO_MIXTO;
+    // Con pago mixto también hay efectivo, así que el "cobro rápido"
+    // sigue visible (el vuelto se calcula solo sobre la parte en efectivo).
+    cobroRapido.classList.toggle('visible', metodoEl.value === 'Efectivo' || esMixto);
+    const labelRecibido = document.querySelector('label[for="op-monto-recibido"]');
+    if (labelRecibido) labelRecibido.textContent = esMixto ? 'Efectivo recibido' : 'Monto recibido';
+
+    const mixtoWrap = document.getElementById('op-mixto-wrap');
+    if (mixtoWrap) mixtoWrap.classList.toggle('visible', esMixto);
+    const bancoWrap = document.getElementById('op-banco-wrap');
+    if (bancoWrap) bancoWrap.classList.toggle('visible', metodoEl.value === 'Transferencia' || esMixto);
+    if (esMixto) completarMixto();
+  }
+
+  /* ============================================================
+     PAGO MIXTO (Efectivo + Transferencia en la misma venta)
+     ------------------------------------------------------------
+     La opción "Mixto" y sus campos se agregan desde acá (no hace
+     falta tocar el HTML), así funciona igual en facturacion.html y
+     en menu.html ("Registrar compra"). Se carga cuánto va en
+     efectivo y el resto se completa solo como transferencia (o al
+     revés). Se guarda en la factura:
+       metodoPago: "Mixto", montoEfectivo, montoTransferencia (en Gs)
+       pagos: [{ metodo:"Efectivo", monto }, { metodo:"Transferencia", monto, banco }]
+     Además, TODAS las facturas nuevas guardan montoEfectivo y
+     montoTransferencia, así Caja puede sumar cada parte en su caja.
+     ============================================================ */
+  const METODO_MIXTO = 'Mixto';
+  let mixtoUltimoEditado = 'efectivo';
+
+  function prepararPagoMixto() {
+    if (!document.getElementById('op-mixto-style')) {
+      const style = document.createElement('style');
+      style.id = 'op-mixto-style';
+      style.textContent = `
+        .op-mixto-wrap{display:none;border:2px dashed #93c5fd;background:#f8fbff;
+          border-radius:10px;padding:12px 14px;margin:0 0 14px;}
+        .op-mixto-wrap.visible{display:block;}
+        .op-mixto-titulo{font-size:13px;font-weight:700;color:#1e3a8a;margin-bottom:10px;}
+        .op-mixto-estado{font-size:13px;font-weight:600;min-height:18px;}
+        .op-mixto-estado.ok{color:#15803d;}
+        .op-mixto-estado.error{color:#b3261e;}
+      `;
+      document.head.appendChild(style);
+    }
+
+    ['op-metodo-pago', 'edit-metodo-pago'].forEach(id => {
+      const select = document.getElementById(id);
+      if (select && !select.querySelector('option[value="' + METODO_MIXTO + '"]')) {
+        select.insertAdjacentHTML('beforeend', '<option value="' + METODO_MIXTO + '">Mixto (Efectivo + Transferencia)</option>');
+      }
+    });
+
+    // Nombre de la persona que hizo la transferencia (debajo de Banco / N.º de comprobante)
+    [['op-banco-wrap', 'op-titular-transf'], ['edit-banco-wrap', 'edit-titular-transf']].forEach(([wrapId, inputId]) => {
+      const wrap = document.getElementById(wrapId);
+      if (wrap && !document.getElementById(inputId)) {
+        wrap.insertAdjacentHTML('beforeend', `
+          <div class="op-field" style="margin:14px 0;">
+            <label for="${inputId}">Nombre de quien transfirió</label>
+            <input type="text" id="${inputId}" placeholder="Ej.: Juan Pérez" autocomplete="off">
+          </div>`);
+      }
+    });
+
+    const bancoWrap = document.getElementById('op-banco-wrap');
+    if (bancoWrap && !document.getElementById('op-mixto-wrap')) {
+      bancoWrap.insertAdjacentHTML('beforebegin', `
+        <div class="op-mixto-wrap" id="op-mixto-wrap">
+          <div class="op-mixto-titulo">¿Cuánto paga con cada medio?</div>
+          <div class="op-grid cols-2" style="margin-bottom:6px;">
+            <div class="op-field">
+              <label for="op-mixto-efectivo">En efectivo</label>
+              <input type="text" id="op-mixto-efectivo" inputmode="decimal" placeholder="0">
+            </div>
+            <div class="op-field">
+              <label for="op-mixto-transferencia">Por transferencia</label>
+              <input type="text" id="op-mixto-transferencia" inputmode="decimal" placeholder="0">
+            </div>
+          </div>
+          <div class="op-mixto-estado" id="op-mixto-estado"></div>
+        </div>`);
+
+      ['efectivo', 'transferencia'].forEach(parte => {
+        const input = document.getElementById('op-mixto-' + parte);
+        input.addEventListener('input', function () {
+          // En guaraníes se muestra con separador de miles mientras se escribe
+          if (monedaOperacionActual() === 'Gs') {
+            const digitos = this.value.replace(/[^\d]/g, '');
+            this.value = digitos ? Number(digitos).toLocaleString('es-PY') : '';
+          }
+          mixtoUltimoEditado = parte;
+          completarMixto();
+          recalcularVuelto();
+        });
+      });
+    }
+  }
+
+  function monedaOperacionActual() {
+    const monedaEl = document.getElementById('op-moneda');
+    return monedaEl ? monedaEl.value : 'Gs';
+  }
+
+  function totalOperacionActual() {
+    const totalEl = document.getElementById('op-total');
+    if (!totalEl) return 0;
+    return Number(String(totalEl.value || '0').replace(/\./g, '').replace(',', '.')) || 0;
+  }
+
+  function leerMontoMixto(parte) {
+    const el = document.getElementById('op-mixto-' + parte);
+    return el ? parseNumero(el.value) : 0;
+  }
+
+  function escribirMontoMixto(parte, valor) {
+    const el = document.getElementById('op-mixto-' + parte);
+    if (el) el.value = valor > 0 ? fmtMoneda(valor, monedaOperacionActual()) : '';
+  }
+
+  // Completa la otra parte con lo que falta para llegar al total
+  function completarMixto() {
+    const metodoEl = document.getElementById('op-metodo-pago');
+    if (!metodoEl || metodoEl.value !== METODO_MIXTO) return;
+    const total = totalOperacionActual();
+    const otra = mixtoUltimoEditado === 'efectivo' ? 'transferencia' : 'efectivo';
+    const editado = Math.min(leerMontoMixto(mixtoUltimoEditado), total);
+    escribirMontoMixto(otra, Math.max(0, total - editado));
+    actualizarEstadoMixto();
+  }
+
+  function toleranciaMoneda(m) {
+    return m === 'Gs' ? 1 : 0.01;
+  }
+
+  function actualizarEstadoMixto() {
+    const estadoEl = document.getElementById('op-mixto-estado');
+    if (!estadoEl) return;
+    const m = monedaOperacionActual();
+    const total = totalOperacionActual();
+    const suma = leerMontoMixto('efectivo') + leerMontoMixto('transferencia');
+    const diferencia = total - suma;
+    const simbolo = symbols[m] || '';
+    if (Math.abs(diferencia) <= toleranciaMoneda(m)) {
+      estadoEl.textContent = `✔ Suma ${simbolo}${fmtMoneda(suma, m)}, igual al total.`;
+      estadoEl.className = 'op-mixto-estado ok';
+    } else if (diferencia > 0) {
+      estadoEl.textContent = `Faltan ${simbolo}${fmtMoneda(diferencia, m)} para llegar al total.`;
+      estadoEl.className = 'op-mixto-estado error';
+    } else {
+      estadoEl.textContent = `Se pasa por ${simbolo}${fmtMoneda(-diferencia, m)} del total.`;
+      estadoEl.className = 'op-mixto-estado error';
+    }
+  }
+
+  // Texto del método de pago para el detalle, el ticket y la factura
+  function textoMetodoPago(factura) {
+    const metodo = factura.metodoPago || factura.metodo || '—';
+    if (metodo !== METODO_MIXTO) return metodo;
+    const m = factura.moneda || 'Gs';
+    return `Mixto (Efectivo ${formatearPrecioEnMoneda(factura.montoEfectivo || 0, m)} + ` +
+      `Transferencia ${formatearPrecioEnMoneda(factura.montoTransferencia || 0, m)})`;
+  }
+
+  // Cuánto de cada factura corresponde a cada caja (todo en Gs)
+  function montosPorCaja(metodoPago, totalGs, efectivoMixtoGs) {
+    if (metodoPago === METODO_MIXTO) {
+      const ef = Math.min(Math.max(0, efectivoMixtoGs || 0), totalGs);
+      return { montoEfectivo: ef, montoTransferencia: totalGs - ef };
+    }
+    if (metodoPago === 'Efectivo') return { montoEfectivo: totalGs, montoTransferencia: 0 };
+    return { montoEfectivo: 0, montoTransferencia: totalGs };
   }
 
   // ---------- Guardar ----------
@@ -1483,12 +1678,21 @@
     // que estar abierta, si no, no se puede guardar la venta.
     if (!facturaEditandoId) {
       const metodoActual = document.getElementById('op-metodo-pago').value;
-      const tipoCajaNecesaria = mapearFormaPagoCaja(metodoActual);
-      const cajaOk = await getCajaActiva(tipoCajaNecesaria);
-      if (!cajaOk) {
-        const nombreCaja = tipoCajaNecesaria === 'efectivo' ? 'Efectivo' : 'Transferencia';
-        mostrarModalCajaCerrada(`La caja de ${nombreCaja} debe estar abierta para registrar esta venta (método de pago: ${metodoActual}).`);
-        return;
+      if (metodoActual === METODO_MIXTO) {
+        // Un pago mixto entra en las dos cajas: tienen que estar abiertas ambas
+        const estadoCajasMixto = await obtenerEstadoCajas();
+        if (!estadoCajasMixto.efectivo || !estadoCajasMixto.transferencia) {
+          mostrarModalCajaCerrada('Para un pago mixto tienen que estar abiertas las dos cajas: la de Efectivo y la de Transferencia.');
+          return;
+        }
+      } else {
+        const tipoCajaNecesaria = mapearFormaPagoCaja(metodoActual);
+        const cajaOk = await getCajaActiva(tipoCajaNecesaria);
+        if (!cajaOk) {
+          const nombreCaja = tipoCajaNecesaria === 'efectivo' ? 'Efectivo' : 'Transferencia';
+          mostrarModalCajaCerrada(`La caja de ${nombreCaja} debe estar abierta para registrar esta venta (método de pago: ${metodoActual}).`);
+          return;
+        }
       }
     }
 
@@ -1513,6 +1717,24 @@
     });
 
     if (items.length < 1) { showMsg('Agregá al menos un producto.', 'error'); return; }
+
+    // Pago mixto: las dos partes tienen que sumar el total
+    let mixtoEfectivoGs = 0;
+    if (document.getElementById('op-metodo-pago').value === METODO_MIXTO) {
+      const efMixto = leerMontoMixto('efectivo');
+      const trMixto = leerMontoMixto('transferencia');
+      const totalMixto = totalOperacionActual();
+      if (efMixto <= 0 || trMixto <= 0) {
+        showMsg('En un pago mixto cargá cuánto va en efectivo y cuánto por transferencia.', 'error');
+        return;
+      }
+      if (Math.abs(efMixto + trMixto - totalMixto) > toleranciaMoneda(monedaOperacion)) {
+        const sim = symbols[monedaOperacion] || '';
+        showMsg(`Efectivo + Transferencia tiene que sumar el total (${sim}${fmtMoneda(totalMixto, monedaOperacion)}).`, 'error');
+        return;
+      }
+      mixtoEfectivoGs = convertirAGs(efMixto, monedaOperacion);
+    }
 
     const numeroDocValorNueva = document.getElementById('op-numero-doc')
       ? document.getElementById('op-numero-doc').value.trim() : '';
@@ -1542,7 +1764,9 @@
       }
 
       const metodoPago = document.getElementById('op-metodo-pago').value;
-      const banco = metodoPago === 'Transferencia' ? document.getElementById('op-banco').value.trim() : '';
+      const banco = (metodoPago === 'Transferencia' || metodoPago === METODO_MIXTO) ? document.getElementById('op-banco').value.trim() : '';
+      const titularInput = document.getElementById('op-titular-transf');
+      const titularTransferencia = (metodoPago === 'Transferencia' || metodoPago === METODO_MIXTO) && titularInput ? titularInput.value.trim() : '';
       const estadoEl = document.getElementById('op-estado');
       const estado = estadoEl ? estadoEl.value : 'Pagada';
       const noGravadaGs = convertirAGs(Number(document.getElementById('op-no-gravada').value) || 0, monedaOperacion);
@@ -1594,6 +1818,7 @@
         fecVcto: document.getElementById('op-fec-vcto').value,
         metodoPago: metodoPago,
         banco: banco,
+        titularTransferencia: titularTransferencia,
         subtotal: totalProductos,
         noGravada: noGravadaGs,
         total: totalProductos + noGravadaGs,
@@ -1609,6 +1834,17 @@
         items,
         estado: estado
       };
+
+      // Cuánto entra en cada caja (para Caja y reportes)
+      const montosCaja = montosPorCaja(metodoPago, payload.total, mixtoEfectivoGs);
+      payload.montoEfectivo = montosCaja.montoEfectivo;
+      payload.montoTransferencia = montosCaja.montoTransferencia;
+      payload.pagos = metodoPago === METODO_MIXTO ? [
+        { metodo: 'Efectivo', monto: montosCaja.montoEfectivo },
+        { metodo: 'Transferencia', monto: montosCaja.montoTransferencia, banco: banco, titular: titularTransferencia }
+      ] : [
+        { metodo: metodoPago, monto: payload.total, banco: banco, titular: titularTransferencia }
+      ];
 
       if (editando) {
         payload.created_at = facturaOriginal?.created_at || new Date().toISOString();
@@ -1664,7 +1900,7 @@
     on('op-metodo-pago', 'change', function() {
       const bancoWrap = document.getElementById('op-banco-wrap');
       if (bancoWrap) {
-        if (this.value === 'Transferencia') {
+        if (this.value === 'Transferencia' || this.value === METODO_MIXTO) {
           bancoWrap.classList.add('visible');
         } else {
           bancoWrap.classList.remove('visible');
@@ -1721,7 +1957,17 @@
     document.getElementById("modal-cliente").textContent = factura.cliente?.name || "—";
     document.getElementById("modal-mesa").textContent = factura.mesa || "—";
     document.getElementById("modal-cajero").textContent = factura.cajero || sesionActual?.nombre || "—";
-    document.getElementById("modal-metodo").textContent = factura.metodoPago || factura.metodo || "—";
+    document.getElementById("modal-metodo").textContent = textoMetodoPago(factura);
+    // Banco y quién transfirió (solo con Transferencia o Mixto)
+    const bancoWrapDetalle = document.getElementById("modal-banco-wrap");
+    const bancoDetalle = document.getElementById("modal-banco");
+    const conTransferencia = factura.metodoPago === 'Transferencia' || factura.metodoPago === METODO_MIXTO;
+    const datosTransf = [factura.banco, factura.titularTransferencia ? `Transfirió: ${factura.titularTransferencia}` : '']
+      .filter(Boolean).join(' · ');
+    if (bancoWrapDetalle && bancoDetalle) {
+      bancoDetalle.textContent = datosTransf || '—';
+      bancoWrapDetalle.style.display = conTransferencia && datosTransf ? '' : 'none';
+    }
     document.getElementById("modal-estado").textContent = getEstadoLabel(factura.estado);
 
     const tbody = document.getElementById("modal-items-body");
@@ -1901,9 +2147,12 @@
     if (bancoInputEditar) bancoInputEditar.value = factura.banco || '';
     const numeroDocInput = document.getElementById('edit-numero-doc');
     if (numeroDocInput) numeroDocInput.value = factura.numeroDoc || '';
+    const titularInputEditar = document.getElementById('edit-titular-transf');
+    if (titularInputEditar) titularInputEditar.value = factura.titularTransferencia || '';
     const bancoWrapEditar = document.getElementById('edit-banco-wrap');
     if (bancoWrapEditar) {
-      bancoWrapEditar.classList.toggle('visible', (factura.metodoPago || 'Efectivo') === 'Transferencia');
+      const metodoActualEditar = factura.metodoPago || 'Efectivo';
+      bancoWrapEditar.classList.toggle('visible', metodoActualEditar === 'Transferencia' || metodoActualEditar === METODO_MIXTO);
     }
 
     const tbody = document.getElementById('edit-cuentas-body');
@@ -1971,7 +2220,22 @@
     // NUEVO: leer Banco y N.º de comprobante tipeados, para guardarlos
     // junto con el resto de los cambios.
     const bancoInputEditar = document.getElementById('edit-banco');
-    const banco = metodoPago === 'Transferencia' && bancoInputEditar ? bancoInputEditar.value.trim() : '';
+    const banco = (metodoPago === 'Transferencia' || metodoPago === METODO_MIXTO) && bancoInputEditar ? bancoInputEditar.value.trim() : '';
+    const titularInputEditarG = document.getElementById('edit-titular-transf');
+    const titularTransferencia = (metodoPago === 'Transferencia' || metodoPago === METODO_MIXTO) && titularInputEditarG ? titularInputEditarG.value.trim() : '';
+
+    // Pago mixto en la edición rápida: se conserva lo que ya estaba en
+    // efectivo y el resto queda como transferencia. Para dividir una venta
+    // que antes no era mixta, hay que cargarla con "Nueva Operación".
+    const facturaAntesDeEditar = facturas.find(f => f.id === facturaEditandoSimpleId);
+    let efectivoMixtoEditarGs = 0;
+    if (metodoPago === METODO_MIXTO) {
+      if (!facturaAntesDeEditar || facturaAntesDeEditar.metodoPago !== METODO_MIXTO) {
+        showEditMsg('Para dividir el pago entre efectivo y transferencia, cargá la venta con "Nueva Operación".', 'error');
+        return;
+      }
+      efectivoMixtoEditarGs = facturaAntesDeEditar.montoEfectivo || 0;
+    }
     const numeroDocInput = document.getElementById('edit-numero-doc');
     const numeroDoc = numeroDocInput ? numeroDocInput.value.trim() : '';
 
@@ -1996,6 +2260,7 @@
         items,
         metodoPago,
         banco,
+        titularTransferencia,
         estado,
         numeroDoc,
         subtotal: totalGs,
@@ -2007,6 +2272,15 @@
         sucursalId: facturaOriginalEditSimple?.sucursalId || sucursalId,
         updated_at: new Date().toISOString()
       };
+      const montosCajaEditar = montosPorCaja(metodoPago, totalGs, efectivoMixtoEditarGs);
+      patch.montoEfectivo = montosCajaEditar.montoEfectivo;
+      patch.montoTransferencia = montosCajaEditar.montoTransferencia;
+      patch.pagos = metodoPago === METODO_MIXTO ? [
+        { metodo: 'Efectivo', monto: montosCajaEditar.montoEfectivo },
+        { metodo: 'Transferencia', monto: montosCajaEditar.montoTransferencia, banco: banco, titular: titularTransferencia }
+      ] : [
+        { metodo: metodoPago, monto: totalGs, banco: banco, titular: titularTransferencia }
+      ];
       await actualizarFactura(facturaEditandoSimpleId, patch);
       showEditMsg('Factura actualizada correctamente.', 'success');
       setTimeout(() => {
@@ -2034,7 +2308,7 @@
     on('edit-guardar', 'click', guardarEdicionSimple);
     on('edit-metodo-pago', 'change', function () {
       const bancoWrapEditar = document.getElementById('edit-banco-wrap');
-      if (bancoWrapEditar) bancoWrapEditar.classList.toggle('visible', this.value === 'Transferencia');
+      if (bancoWrapEditar) bancoWrapEditar.classList.toggle('visible', this.value === 'Transferencia' || this.value === METODO_MIXTO);
     });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && overlay.classList.contains('open')) cerrarModalEditarSimple();
@@ -2263,6 +2537,7 @@
     }
 
     initNuevaOperacion();
+    prepararPagoMixto();
     wireModalEvents();
     // El modal de "N.º de comprobante repetido" se usa desde el modal de
     // Nueva Operación, que también vive en menu.html (no solo acá) — se

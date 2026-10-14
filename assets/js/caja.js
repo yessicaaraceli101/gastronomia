@@ -131,9 +131,27 @@
      "Efectivo" -> efectivo; cualquier otro medio -> transferencia
      (la UI de Caja solo distingue esas dos categorías).
      Egresos quedan en 0: todavía no hay pantalla de gastos/compras.
+
+     PAGO MIXTO: una factura puede pagarse parte en efectivo y parte
+     por transferencia (metodoPago "Mixto"). Por eso cada factura se
+     reparte entre las dos cajas: se usan montoEfectivo y
+     montoTransferencia (los guarda facturacion.js desde la v4). Las
+     facturas viejas, que no tienen esos campos, se reparten como
+     siempre: todo a una sola caja según su método de pago.
      ============================================================ */
   function mapearFormaPago(metodoPago) {
     return metodoPago === 'Efectivo' ? 'efectivo' : 'transferencia';
+  }
+
+  function repartirEntreCajas(f) {
+    const total = typeof f.total === 'number' ? f.total : 0;
+    const tieneDesglose = typeof f.montoEfectivo === 'number' && typeof f.montoTransferencia === 'number';
+    if (tieneDesglose) {
+      return { efectivo: f.montoEfectivo, transferencia: f.montoTransferencia };
+    }
+    return mapearFormaPago(f.metodoPago) === 'efectivo'
+      ? { efectivo: total, transferencia: 0 }
+      : { efectivo: 0, transferencia: total };
   }
 
   async function getFacturasDesde(fechaISO) {
@@ -153,10 +171,11 @@
         // agregar un .where() más en Firestore, para no depender de un
         // índice compuesto que quizás no existe todavía.
         if (f.sucursalId !== sucursalId) return;
+        const partes = repartirEntreCajas(f);
         movs.push({
           fecha: new Date(f.created_at),
-          monto: typeof f.total === 'number' ? f.total : 0,
-          forma_pago: mapearFormaPago(f.metodoPago)
+          efectivo: partes.efectivo,
+          transferencia: partes.transferencia
         });
       });
       return movs;
@@ -268,12 +287,16 @@
       const enElDia = m.fecha >= inicioDia && m.fecha < finDia;
       const enElMes = m.fecha >= inicioMes;
 
-      if (m.forma_pago === 'efectivo') {
-        if (enElDia) efectivoDiaIng += m.monto;
-        if (enElMes) efectivoMesIng += m.monto;
-      } else {
-        if (enElDia) transDiaIng += m.monto;
-        if (enElMes) transMesIng += m.monto;
+      // Cada venta suma su parte en efectivo a la caja de Efectivo y su
+      // parte por transferencia a la de Transferencia (en una venta
+      // normal, una de las dos partes es 0).
+      if (enElDia) {
+        efectivoDiaIng += m.efectivo;
+        transDiaIng += m.transferencia;
+      }
+      if (enElMes) {
+        efectivoMesIng += m.efectivo;
+        transMesIng += m.transferencia;
       }
     });
 

@@ -6,6 +6,76 @@
 <title>Gastro — Mapa de mesas</title>
 <link rel="stylesheet" href="assets/css/dashboard.css">
 <link rel="stylesheet" href="assets/css/mesas.css">
+<style>
+  /* Botón grande para cargar el pedido de la mesa en el Menú */
+  .btn-cargar-pedido {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 16px;
+    padding: 14px 16px;
+    border: none;
+    border-radius: 10px;
+    background: #f59e0b;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 6px 14px -8px rgba(217, 119, 6, .8);
+    transition: background .15s, transform .15s;
+  }
+  .btn-cargar-pedido:hover { background: #d97706; transform: translateY(-1px); }
+  .btn-cargar-pedido:disabled { opacity: .7; cursor: progress; transform: none; }
+  .btn-cargar-pedido svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+  /* Botones de abajo del modal: tamaño justo, alineados a la derecha
+     (antes "Cancelar" ocupaba todo el ancho cuando no había "Guardar") */
+  #modal-overlay .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  #modal-overlay .modal-actions .btn {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 120px;
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+  #modal-cancel {
+    background: #dc2626 !important;
+    border: 1px solid #dc2626 !important;
+    color: #fff !important;
+  }
+  #modal-cancel:hover {
+    background: #b91c1c !important;
+    border-color: #b91c1c !important;
+  }
+
+  /* Confirmación "¿Descartar los cambios?" */
+  #confirm-keep {
+    background: #6b7280 !important;
+    border: 1px solid #6b7280 !important;
+    color: #fff !important;
+  }
+  #confirm-keep:hover {
+    background: #4b5563 !important;
+    border-color: #4b5563 !important;
+  }
+  #confirm-discard {
+    background: #dc2626 !important;
+    border: 1px solid #dc2626 !important;
+    color: #fff !important;
+  }
+  #confirm-discard:hover {
+    background: #b91c1c !important;
+    border-color: #b91c1c !important;
+  }
+</style>
 </head>
 <body>
 <div class="app">
@@ -167,6 +237,12 @@
             <button type="button" class="status-option" data-status="reserved"><i></i>Reservada</button>
           </div>
         </div>
+
+        <!-- Abre el Menú con esta mesa ya cargada en el pedido -->
+        <button type="button" class="btn-cargar-pedido" id="modal-pedido">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v7a2 2 0 0 0 2 2 2 2 0 0 0 2-2V2M8 11v11M18 2c-2 2-2 6-2 8 0 1 .5 2 2 2s2-1 2-2c0-2 0-6-2-8zM18 13v9"/></svg>
+          <span>Cargar pedido</span>
+        </button>
       </div>
 
       <div class="modal-col">
@@ -704,6 +780,10 @@
     });
     document.getElementById("modal-save").style.display = mesa._fromReserva ? "none" : "";
 
+    const btnPedido = document.getElementById("modal-pedido");
+    btnPedido.disabled = false;
+    btnPedido.querySelector("span").textContent = "Cargar pedido";
+
     document.getElementById("modal-overlay").classList.add("open");
   }
 
@@ -747,6 +827,40 @@
   }
 
   /* ============================================================
+     CARGAR PEDIDO DE LA MESA
+     ------------------------------------------------------------
+     Abre el Menú con la mesa ya puesta en el pedido
+     (menu.html?mesa=...&mesaId=...). Si la mesa estaba Libre, antes
+     de salir la marca como Ocupada, con la hora en la nota. Las
+     mesas con reserva no se tocan: su estado sale de Reservas.
+     ============================================================ */
+  async function cargarPedidoMesa() {
+    const mesa = mesas.find((t) => t.id === openTableId);
+    if (!mesa) return;
+
+    const btn = document.getElementById("modal-pedido");
+    btn.disabled = true;
+    btn.querySelector("span").textContent = "Abriendo el menú...";
+
+    if (mesa.status === "free" && !mesa._fromReserva) {
+      const hora = new Date().toLocaleTimeString("es-PY", { hour: "2-digit", minute: "2-digit" });
+      try {
+        await actualizarMesa(mesa.id, {
+          status: "occupied",
+          nota: mesa.nota || `Ocupada desde las ${hora}`,
+          sucursalId: sucursalId
+        });
+      } catch (error) {
+        // Si no se pudo marcar como ocupada, igual seguimos al menú
+        console.warn("No se pudo marcar la mesa como ocupada:", error);
+      }
+    }
+
+    const nombre = mesa.numero_mesa || mesa.id;
+    window.location.href = `menu.html?mesa=${encodeURIComponent(nombre)}&mesaId=${encodeURIComponent(mesa.id)}`;
+  }
+
+  /* ============================================================
      EVENTOS Y CONFIGURACIÓN
      ============================================================ */
   function initFilters() {
@@ -777,6 +891,7 @@
     document.getElementById("modal-close").addEventListener("click", openConfirm);
     document.getElementById("modal-cancel").addEventListener("click", openConfirm);
     document.getElementById("modal-save").addEventListener("click", saveModal);
+    document.getElementById("modal-pedido").addEventListener("click", cargarPedidoMesa);
     document.getElementById("modal-overlay").addEventListener("click", (e) => {
       if (e.target.id === "modal-overlay") openConfirm();
     });

@@ -856,3 +856,115 @@
   });
 
 })();
+
+/* =========================================================
+   PEDIDO PARA UNA MESA (agregado al final de menu.js)
+   ---------------------------------------------------------
+   Cuando el Menú se abre desde Mesas ("Cargar pedido"), la
+   dirección trae la mesa: menu.html?mesa=mesa%201&mesaId=XXXX
+   Este archivo:
+     • pone la mesa en el campo "Mesa" del pedido,
+     • muestra un aviso arriba: "Pedido para mesa 1",
+     • después de "Registrar compra" ofrece liberar la mesa
+       y volver al mapa de mesas.
+   Si el Menú se abre normal (sin mesa), no hace nada.
+   ========================================================= */
+(function () {
+  "use strict";
+
+  const params = new URLSearchParams(window.location.search);
+  const mesa = params.get("mesa");
+  const mesaId = params.get("mesaId");
+  if (!mesa) return;
+
+  const estilo = document.createElement("style");
+  estilo.textContent = `
+    .mesa-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;
+      flex-wrap:wrap;margin:0 0 16px;padding:12px 16px;border-radius:12px;
+      background:#fff7ed;border:2px solid #f59e0b;color:#7c2d12;font-family:inherit;}
+    .mesa-banner.lista{background:#f0fdf4;border-color:#22c55e;color:#14532d;}
+    .mesa-banner__texto{font-size:15px;font-weight:600;}
+    .mesa-banner__texto strong{font-size:18px;font-weight:800;text-transform:capitalize;}
+    .mesa-banner__acciones{display:flex;gap:8px;flex-wrap:wrap;}
+    .mesa-banner__btn{padding:9px 14px;border-radius:8px;font-size:14px;font-weight:700;
+      cursor:pointer;border:1px solid #d1d5db;background:#fff;color:#1f2937;
+      text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-family:inherit;}
+    .mesa-banner__btn:hover{background:#f3f4f6;}
+    .mesa-banner__btn--ok{background:#16a34a;border-color:#16a34a;color:#fff;}
+    .mesa-banner__btn--ok:hover{background:#15803d;}
+    .mesa-banner__btn:disabled{opacity:.6;cursor:progress;}
+  `;
+  document.head.appendChild(estilo);
+
+  function esc(t) {
+    return String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function obtenerBanner() {
+    let banner = document.getElementById("mesa-banner");
+    if (banner) return banner;
+    banner = document.createElement("div");
+    banner.id = "mesa-banner";
+    banner.className = "mesa-banner";
+    const catalogo = document.querySelector(".menu-catalog");
+    if (catalogo) catalogo.insertBefore(banner, catalogo.firstChild);
+    return banner;
+  }
+
+  function pintarBannerPedido() {
+    const banner = obtenerBanner();
+    banner.classList.remove("lista");
+    banner.innerHTML = `
+      <div class="mesa-banner__texto">Pedido para <strong>${esc(mesa)}</strong>. Tocá los platos y después <em>Registrar compra</em>.</div>
+      <div class="mesa-banner__acciones">
+        <a class="mesa-banner__btn" href="mesas.html">← Volver a Mesas</a>
+      </div>`;
+  }
+
+  function pintarBannerRegistrada() {
+    const banner = obtenerBanner();
+    banner.classList.add("lista");
+    banner.innerHTML = `
+      <div class="mesa-banner__texto">✔ Venta registrada para <strong>${esc(mesa)}</strong>.</div>
+      <div class="mesa-banner__acciones">
+        ${mesaId ? `<button type="button" class="mesa-banner__btn mesa-banner__btn--ok" id="mesa-liberar">Liberar mesa y volver</button>` : ""}
+        <a class="mesa-banner__btn" href="mesas.html">Volver a Mesas</a>
+      </div>`;
+    const btn = document.getElementById("mesa-liberar");
+    if (btn) btn.addEventListener("click", liberarMesa);
+  }
+
+  // Deja la mesa Libre (sin cliente) y vuelve al mapa de mesas.
+  async function liberarMesa() {
+    const btn = document.getElementById("mesa-liberar");
+    if (btn) { btn.disabled = true; btn.textContent = "Liberando..."; }
+    try {
+      await db.collection("mesas").doc(mesaId).update({
+        status: "free",
+        cliente: "",
+        telefono: "",
+        nota: "",
+        personas: null
+      });
+    } catch (e) {
+      console.error("[menu-mesa] No se pudo liberar la mesa:", e);
+      alert("No se pudo liberar la mesa. Podés hacerlo desde Mesas.");
+    }
+    window.location.href = "mesas.html";
+  }
+
+  function ponerMesaEnPedido() {
+    const input = document.getElementById("input-mesa");
+    if (input && !input.value) input.value = mesa;
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    ponerMesaEnPedido();
+    pintarBannerPedido();
+  });
+  document.addEventListener("sesionLista", ponerMesaEnPedido);
+  document.addEventListener("operacion-factura-guardada", () => {
+    ponerMesaEnPedido();
+    pintarBannerRegistrada();
+  });
+})();
