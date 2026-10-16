@@ -501,3 +501,168 @@
   });
 
 })();
+
+/* ==============================================================
+   USUARIOS RÁPIDO (agregado)
+   --------------------------------------------------------------
+   • "Nuevo / Editar usuario" en pantalla completa, en dos
+     columnas, sin scroll. Los botones quedan fijos abajo.
+   • Enter guarda y Esc cancela.
+   • Desde el acceso rápido del Panel principal
+     (usuarios.html?nuevo=1) se abre directo "Nuevo usuario".
+   • En un usuario nuevo no se muestra "Último acceso".
+   No cambia nada de cómo se crean o guardan los usuarios.
+   ============================================================== */
+(function () {
+  "use strict";
+
+  function estilosUsuarioGrande() {
+    if (document.getElementById("usuario-grande-style")) return;
+    const style = document.createElement("style");
+    style.id = "usuario-grande-style";
+    style.textContent = `
+      #modal-overlay { padding: 0 !important; align-items: stretch !important; justify-content: stretch !important; }
+      #modal-overlay .modal-card {
+        width: 100vw !important; max-width: 100vw !important; height: 100vh !important; max-height: 100vh !important;
+        border-radius: 0 !important; margin: 0 !important; display: flex !important; flex-direction: column !important;
+      }
+      #modal-overlay .modal-head { background: #0369a1; flex-shrink: 0; padding: 14px 24px !important; }
+      #modal-overlay .modal-head h3 { color: #fff !important; font-size: 20px !important; }
+      #modal-overlay .modal-close { color: #fff !important; }
+      #modal-overlay .modal-sub { flex-shrink: 0; padding: 10px 24px !important; max-width: 1000px; width: 100%; margin: 0 auto; box-sizing: border-box; border: 0 !important; }
+      #modal-overlay .modal-body {
+        flex: 1 1 auto; overflow-y: auto; width: 100%; max-width: 1000px; margin: 0 auto; box-sizing: border-box;
+        display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 18px 32px !important;
+        grid-template-areas: "nombre rol" "email sucursal" "clave estado" "acceso acceso";
+        align-content: start; padding: 18px 24px !important;
+      }
+      #modal-overlay .modal-field:has(#f-user-name) { grid-area: nombre !important; }
+      #modal-overlay .modal-field:has(#f-user-email) { grid-area: email !important; }
+      #modal-overlay .modal-field:has(#f-user-password) { grid-area: clave !important; }
+      #modal-overlay .modal-field:has(#f-user-role) { grid-area: rol !important; }
+      #modal-overlay .modal-field:has(#f-user-sucursal) { grid-area: sucursal !important; }
+      #modal-overlay .modal-field:has(.status-options) { grid-area: estado !important; }
+      #modal-overlay #last-access-row { grid-area: acceso !important; }
+      #modal-overlay .modal-field input, #modal-overlay .modal-field select { padding-top: 10px; padding-bottom: 10px; }
+      #modal-overlay .modal-card > .modal-actions {
+        flex-shrink: 0; display: flex; align-items: center; gap: 10px; margin: 0 !important;
+        padding: 12px 24px !important; border-top: 1px solid #e5e7eb !important; background: #fbfbfc;
+      }
+      #modal-overlay .modal-card > .modal-actions .btn { min-width: 150px; padding: 11px 22px; }
+      #modal-cancel { background: #6b7280 !important; border-color: #6b7280 !important; color: #fff !important; }
+      .usuario-ayuda { font-size: 12.5px; color: #6b7280; }
+      /* Estado: el elegido se ve lleno (verde = Activo, rojo = Inactivo) */
+      #modal-overlay .status-options { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px;
+        background: transparent !important; padding: 0 !important; border: 0 !important; }
+      #modal-overlay .status-option { display: flex !important; align-items: center; justify-content: center; gap: 8px;
+        padding: 10px 12px !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 14px !important;
+        cursor: pointer; background: #fff !important; color: #6b7280 !important; border: 1.5px solid #d1d5db !important;
+        box-shadow: none !important; transition: background .15s, color .15s, border-color .15s; }
+      #modal-overlay .status-option[data-status="ok"]:not(.active):hover { border-color: #16a34a !important; color: #16a34a !important; }
+      #modal-overlay .status-option[data-status="cancel"]:not(.active):hover { border-color: #dc2626 !important; color: #dc2626 !important; }
+      #modal-overlay .status-option[data-status="ok"].active { background: #16a34a !important; border-color: #16a34a !important; color: #fff !important; }
+      #modal-overlay .status-option[data-status="cancel"].active { background: #dc2626 !important; border-color: #dc2626 !important; color: #fff !important; }
+      #modal-overlay .status-option.active i { background: #fff !important; }
+      @media (max-width: 800px) {
+        #modal-overlay .modal-body {
+          grid-template-columns: 1fr !important;
+          grid-template-areas: "estado" "nombre" "rol" "clave" "sucursal" "email" "acceso";
+        }
+        .usuario-ayuda { display: none; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Los botones pasan abajo de todo, fijos (fuera del área con scroll)
+    const card = document.querySelector("#modal-overlay .modal-card");
+    const acciones = document.querySelector("#modal-overlay .modal-body .modal-actions");
+    if (card && acciones) {
+      card.appendChild(acciones);
+      if (!acciones.querySelector(".usuario-ayuda")) {
+        const spacer = acciones.querySelector(".spacer");
+        const ayuda = document.createElement("span");
+        ayuda.className = "usuario-ayuda";
+        ayuda.textContent = "Enter para guardar · Esc para cancelar";
+        if (spacer) spacer.before(ayuda); else acciones.prepend(ayuda);
+      }
+    }
+  }
+
+  function ocultarUltimoAccesoEnNuevo() {
+    const fila = document.getElementById("last-access-row");
+    const titulo = document.getElementById("modal-title");
+    if (!fila || !titulo) return;
+    if (titulo.textContent.trim() === "Nuevo usuario") fila.style.setProperty("display", "none", "important");
+    else { fila.style.removeProperty("display"); fila.style.display = "flex"; }
+  }
+
+  function atajos() {
+    const overlay = document.getElementById("modal-overlay");
+    if (!overlay) return;
+    overlay.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && e.target && e.target.tagName === "INPUT") {
+        e.preventDefault();
+        document.getElementById("modal-save")?.click();
+      }
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape" || !overlay.classList.contains("open")) return;
+      if (document.getElementById("confirm-overlay")?.classList.contains("open")) return;
+      document.getElementById("modal-cancel")?.click();
+    });
+    // Después de abrir (nuevo o editar), acomodar "Último acceso"
+    document.getElementById("add-user-btn")?.addEventListener("click", () => setTimeout(ocultarUltimoAccesoEnNuevo, 0));
+    document.getElementById("usuarios-body")?.addEventListener("click", (e) => {
+      if (e.target.closest(".editar")) setTimeout(ocultarUltimoAccesoEnNuevo, 0);
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    estilosUsuarioGrande();
+    atajos();
+  });
+
+  document.addEventListener("sesionLista", function () {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("nuevo") === "1") {
+      window.history.replaceState(null, "", window.location.pathname);
+      setTimeout(() => document.getElementById("add-user-btn")?.click(), 0);
+    }
+  });
+})();
+
+/* ==============================================================
+   ETIQUETAS DE ESTADO CON COLOR LLENO (agregado)
+   --------------------------------------------------------------
+   Las etiquetas de estado de la lista (Pendiente, Confirmada,
+   Entregado, Pagada, Crítico, Activo...) pasan de fondo clarito a
+   color lleno con letra blanca:
+     verde = OK / confirmado / entregado / pagado / activo
+     amarillo = pendiente / bajo
+     rojo = cancelado / anulado / crítico / inactivo
+     azul = preparando · violeta = en camino · gris = sin cargo
+   ============================================================== */
+(function () {
+  "use strict";
+  if (document.getElementById("estados-solidos-style")) return;
+  const style = document.createElement("style");
+  style.id = "estados-solidos-style";
+  style.textContent = `
+    span.estado, span.status {
+      color: #fff !important; border: 0 !important; font-weight: 700 !important;
+      padding: 4px 11px !important; border-radius: 999px !important; display: inline-flex !important;
+      align-items: center; gap: 6px; white-space: nowrap; box-shadow: none !important;
+    }
+    span.estado::before, span.status::before { background: #fff !important; color: #fff !important; border-color: #fff !important; }
+    span.estado.ok, span.estado.estado-ok, span.estado.Delivered, span.estado.Pagada,
+    span.status.ok { background: #16a34a !important; }
+    span.estado.pending, span.estado.Pending, span.estado.Pendiente,
+    span.status.pending { background: #d97706 !important; }
+    span.estado.cancel, span.estado.estado-cancel, span.estado.Canceled, span.estado.Anulada,
+    span.status.cancel { background: #dc2626 !important; }
+    span.estado.Preparing { background: #2563eb !important; }
+    span.estado.Out { background: #7c3aed !important; }
+    span.estado.Sin { background: #6b7280 !important; }
+  `;
+  (document.head || document.documentElement).appendChild(style);
+})();

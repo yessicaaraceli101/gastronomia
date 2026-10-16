@@ -75,6 +75,70 @@
     background: #b91c1c !important;
     border-color: #b91c1c !important;
   }
+
+  /* ============================================================
+     VENTANA DE MESA EN PANTALLA COMPLETA (como Facturación,
+     Pedidos, Inventario y Usuarios)
+     ============================================================ */
+  #modal-overlay { padding: 0 !important; align-items: stretch !important; justify-content: stretch !important; }
+  #modal-overlay .modal-card {
+    width: 100vw !important; max-width: 100vw !important; height: 100vh !important; max-height: 100vh !important;
+    border-radius: 0 !important; margin: 0 !important; display: flex !important; flex-direction: column !important;
+    overflow: hidden !important;
+  }
+  #modal-overlay .modal-head {
+    background: #0369a1 !important; flex-shrink: 0; padding: 14px 24px !important; margin: 0 !important;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  #modal-overlay .modal-head h3 { color: #fff !important; font-size: 22px !important; margin: 0 !important; }
+  #modal-overlay .modal-close { color: #fff !important; background: rgba(255,255,255,.15) !important; border-color: transparent !important; }
+  #modal-overlay .modal-sub {
+    flex-shrink: 0; width: 100%; max-width: 1100px; margin: 0 auto !important; box-sizing: border-box;
+    padding: 12px 24px 0 !important; font-size: 13px; color: #6b7280;
+  }
+  #modal-overlay .modal-body {
+    flex: 1 1 auto; overflow-y: auto; width: 100%; max-width: 1100px; margin: 0 auto; box-sizing: border-box;
+    display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 24px 36px !important;
+    align-content: start; padding: 16px 24px 20px !important;
+  }
+  #modal-overlay .modal-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  #modal-overlay .modal-field input { padding-top: 11px !important; padding-bottom: 11px !important; font-size: 15px !important; }
+
+  /* Estado: botones grandes; el elegido queda lleno de color */
+  #modal-overlay .status-options { display: grid !important; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  #modal-overlay .status-option {
+    display: flex !important; align-items: center; justify-content: center; gap: 8px;
+    padding: 14px 10px !important; border-radius: 10px !important; font-size: 15px !important; font-weight: 700 !important;
+    background: #fff !important; color: #6b7280 !important; border: 1.5px solid #d1d5db !important; cursor: pointer;
+    flex-direction: row !important; transition: background .15s, color .15s, border-color .15s;
+  }
+  #modal-overlay .status-option i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin: 0 !important; }
+  #modal-overlay .status-option[data-status="free"] i { background: #16a34a; }
+  #modal-overlay .status-option[data-status="occupied"] i { background: #dc2626; }
+  #modal-overlay .status-option[data-status="reserved"] i { background: #ea580c; }
+  #modal-overlay .status-option[data-status="free"].active { background: #16a34a !important; border-color: #16a34a !important; color: #fff !important; }
+  #modal-overlay .status-option[data-status="occupied"].active { background: #dc2626 !important; border-color: #dc2626 !important; color: #fff !important; }
+  #modal-overlay .status-option[data-status="reserved"].active { background: #ea580c !important; border-color: #ea580c !important; color: #fff !important; }
+  #modal-overlay .status-option.active i { background: #fff !important; }
+  #modal-overlay .status-option:disabled:not(.active) { opacity: .45; cursor: not-allowed; }
+  #modal-overlay .status-option:disabled.active { cursor: default; }
+
+  /* Cargar pedido: grande */
+  #modal-overlay .btn-cargar-pedido { padding: 18px 20px !important; font-size: 18px !important; margin-top: 4px !important; }
+  #modal-overlay .btn-cargar-pedido svg { width: 24px !important; height: 24px !important; }
+
+  /* Botones fijos abajo */
+  #modal-overlay .modal-card > .modal-actions {
+    flex-shrink: 0; display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+    margin: 0 !important; padding: 12px 24px !important; border-top: 1px solid #e5e7eb !important; background: #fbfbfc;
+  }
+  #modal-overlay .modal-card > .modal-actions .btn { min-width: 150px !important; padding: 11px 22px !important; }
+  .mesa-ayuda { margin-right: auto; font-size: 12.5px; color: #6b7280; }
+
+  @media (max-width: 800px) {
+    #modal-overlay .modal-body { grid-template-columns: 1fr !important; }
+    .mesa-ayuda { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -711,7 +775,11 @@
     // Antes usaba getEmpresa() del array mock — ahora usa la sesión real.
     const sesion = window.sesion || {};
 
-    document.getElementById("modal-title").textContent = `Mesa ${mesa.numero_mesa || tableId}`;
+    // "mesa 1" ya trae la palabra: se muestra "Mesa 1" (antes salía "Mesa mesa 1")
+    const nombreMesa = String(mesa.numero_mesa || tableId).trim();
+    document.getElementById("modal-title").textContent = /^mesa\b/i.test(nombreMesa)
+      ? nombreMesa.replace(/^mesa/i, "Mesa")
+      : `Mesa ${nombreMesa}`;
     document.getElementById("modal-sub").textContent = `${sesion.empresaNombre || ""} · ${sesion.sucursalNombre || ""}`;
 
     const detailBlock = document.getElementById("detail-block");
@@ -882,6 +950,23 @@
   }
 
   function initModal() {
+    // Los botones pasan a una barra fija abajo (fuera del área con scroll)
+    const tarjetaMesa = document.querySelector("#modal-overlay .modal-card");
+    const accionesMesa = document.querySelector("#modal-overlay .modal-body > .modal-actions");
+    if (tarjetaMesa && accionesMesa) {
+      tarjetaMesa.appendChild(accionesMesa);
+      if (!accionesMesa.querySelector(".mesa-ayuda")) {
+        accionesMesa.insertAdjacentHTML("afterbegin", '<span class="mesa-ayuda">Enter para guardar · Esc para cancelar</span>');
+      }
+    }
+    // Enter en un campo = Guardar (si la mesa se puede editar)
+    document.getElementById("modal-overlay").addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" || !e.target || e.target.tagName !== "INPUT") return;
+      e.preventDefault();
+      const btnGuardar = document.getElementById("modal-save");
+      if (btnGuardar && btnGuardar.style.display !== "none") btnGuardar.click();
+    });
+
     document.querySelectorAll(".status-option").forEach((opt) => {
       opt.addEventListener("click", () => {
         document.querySelectorAll(".status-option").forEach((o) => o.classList.remove("active"));

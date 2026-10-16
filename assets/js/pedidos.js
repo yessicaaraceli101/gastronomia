@@ -214,6 +214,18 @@
     }
   }
 
+  // Gastro guarda el precio de los productos del menú en dólares
+  // (moneda base, 1 US$ = 7300 Gs). Un precio en guaraníes nunca es
+  // menor a 100, así que si viene chico lo pasamos a Gs.
+  function precioMenuEnGs(valor) {
+    const n = Number(valor) || 0;
+    return n > 0 && n < 100 ? Math.round(n * rates["Gs"]) : Math.round(n);
+  }
+
+  function normalizarTexto(t) {
+    return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
   function formatearNumero(valor) {
     if (isNaN(valor) || valor === 0) return '';
     return Math.round(valor).toLocaleString('es-PY');
@@ -242,6 +254,17 @@
       "Canceled": "Cancelado"
     };
     return map[estado] || estado;
+  }
+
+  // Tipo de pedido para mostrar: "Mesa 1", "Retiro" o "Delivery"
+  function tipoPedido(pedido, largo) {
+    if (pedido.deliveryType === "mesa") {
+      const m = String(pedido.mesa || pedido.customer?.address || "").trim();
+      if (!m) return "En mesa";
+      return /^mesa/i.test(m) ? m.replace(/^mesa/i, "Mesa") : `Mesa ${m}`;
+    }
+    if (pedido.deliveryType === "pickup") return largo ? "Retiro en local" : "Retiro";
+    return "Delivery";
   }
 
   function calcularTotalFinal(pedido) {
@@ -286,8 +309,8 @@
     let currentOptions = [];
 
     function filterOptions(query) {
-      const q = query.toLowerCase().trim();
-      const filtered = currentOptions.filter(p => p.name.toLowerCase().includes(q));
+      const q = normalizarTexto(query.trim());
+      const filtered = currentOptions.filter(p => normalizarTexto(p.name).includes(q));
       renderOptions(filtered);
     }
 
@@ -297,11 +320,12 @@
       } else {
         let html = '';
         list.forEach(p => {
-          html += `<div class="option-item" data-name="${p.name}" data-price="${p.price}">${p.name}</div>`;
+          html += `<div class="option-item" data-name="${p.name}" data-price="${p.price}" style="display:flex;justify-content:space-between;gap:12px;"><span>${p.name}</span><small style="color:#2563eb;font-weight:700;white-space:nowrap;">Gs. ${precioMenuEnGs(p.price).toLocaleString('es-PY')}</small></div>`;
         });
         optionsContainer.innerHTML = html;
         optionsContainer.querySelectorAll('.option-item').forEach(el => {
-          el.addEventListener('click', function() {
+          el.addEventListener('mousedown', function(e) {
+            e.preventDefault();
             const name = this.dataset.name;
             const price = parseFloat(this.dataset.price);
             input.value = name;
@@ -380,7 +404,8 @@
       const matchTerm = !term ||
         (p.id || "").toLowerCase().includes(term) ||
         (p.customer?.name || "").toLowerCase().includes(term) ||
-        (p.customer?.phone || "").includes(term);
+        (p.customer?.phone || "").includes(term) ||
+        tipoPedido(p).toLowerCase().includes(term);
       const matchEstado = estadoFilter === "all" || p.status === estadoFilter;
       return matchTerm && matchEstado;
     });
@@ -413,7 +438,7 @@
           <td>${p.customer?.name || "—"}</td>
           <td>${p.customer?.phone || "—"}</td>
           <td title="${fullItemList}">${itemsSummary}</td>
-          <td>${p.deliveryType === "pickup" ? "Retiro" : "Delivery"}</td>
+          <td>${tipoPedido(p)}</td>
           <td>${formatearFecha(p.created_at)}</td>
           <td>${formatearPrecio(total)}</td>
           <td><span class="estado ${p.status}">${estadoLabel}</span></td>
@@ -441,9 +466,116 @@
     if (nextBtn) nextBtn.disabled = pagina >= totalPages;
   }
 
+  /* ============================================================
+     SINCRONIZAR VENTAS -> PEDIDOS
+     ------------------------------------------------------------
+     Toda venta (factura) de los últimos 7 días que todavía no tenga su
+     pedido, se lo crea acá: así aparecen en Pedidos las ventas hechas
+     desde el Menú, las Mesas o Facturación, incluso las registradas
+     antes de este cambio. Nunca duplica (se fija por facturaId,
+     código de factura y código de pedido).
+     Las de hoy entran como Pendiente (para cocina); las de días
+     anteriores, como Entregado.
+     ============================================================ */
+  let sincronizando = false;
+
+  function idPedidoDeFactura(f) {
+    const numero = String(f.codigo || "").replace(/^FAC-/, "") || String(f.id || "").slice(0, 8);
+    const mesa = String(f.mesa || "").trim();
+    if (mesa) {
+      const n = mesa.replace(/^mesa\s*/i, "").trim() || mesa;
+      return `MESA-${n.replace(/[^\w-]/g, "")}-${numero}`;
+    }
+    return `VENTA-${numero}`;
+  }
+
+  function mostrarErrorSync(mensaje) {
+    let banner = document.getElementById("sync-error-banner");
+    if (!banner) {
+      const ref = document.getElementById("ambiguo-banner") || document.querySelector(".table-wrapper")
+        || document.getElementById("pedidos-body")?.closest("table");
+      if (!ref) return;
+      banner = document.createElement("div");
+      banner.id = "sync-error-banner";
+      banner.style.cssText = "margin:0 0 14px 0;padding:10px 14px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:8px;font-size:13px;";
+      ref.parentNode.insertBefore(banner, ref);
+    }
+    banner.textContent = mensaje;
+    banner.style.display = mensaje ? "block" : "none";
+  }
+
+  async function sincronizarVentasConPedidos(lista) {
+    if (sincronizando) return 0;
+    sincronizando = true;
+    let creados = 0;
+    try {
+      const snapshot = await db.collection("facturas").where("empresaId", "==", empresaId).get();
+      const conFacturaId = new Set(lista.map(p => p.facturaId).filter(Boolean));
+      const conCodigo = new Set(lista.map(p => p.facturaCodigo).filter(Boolean));
+      const idsExistentes = new Set(lista.map(p => p.id));
+      const limite = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const hoy = new Date().toDateString();
+
+      const pendientes = [];
+      snapshot.forEach(doc => {
+        const f = { id: doc.id, ...doc.data() };
+        if (f.estado === "Anulada") return;
+        if (f.sucursalId && f.sucursalId !== sucursalId) return;
+        const fecha = new Date(f.created_at);
+        if (isNaN(fecha) || fecha.getTime() < limite) return;
+        if (conFacturaId.has(f.id) || (f.codigo && conCodigo.has(f.codigo))) return;
+        const idPedido = idPedidoDeFactura(f);
+        if (idsExistentes.has(idPedido)) return;
+        pendientes.push({ f, idPedido, deHoy: fecha.toDateString() === hoy });
+      });
+
+      for (const { f, idPedido, deHoy } of pendientes) {
+        const mesa = String(f.mesa || "").trim();
+        await db.collection("pedidos").doc(idPedido).set({
+          customer: {
+            name: f.cliente?.name || "Consumidor Final",
+            phone: f.cliente?.phone || "",
+            address: mesa ? (/^mesa/i.test(mesa) ? mesa.replace(/^mesa/i, "Mesa") : `Mesa ${mesa}`) : ""
+          },
+          deliveryType: mesa ? "mesa" : "pickup",
+          mesa: mesa,
+          status: deHoy ? "Pending" : "Delivered",
+          items: (f.items || []).map(i => ({
+            name: String(i.producto || i.name || "Producto").replace(/ \(no está en el catálogo\)$/, ""),
+            qty: i.cantidad || i.qty || 1,
+            price: Math.round(i.precioGs ?? i.precio ?? i.price ?? 0)
+          })),
+          charges: { delivery: 0, tax: 0 },
+          paymentMethod: f.metodoPago || "",
+          facturaId: f.id,
+          facturaCodigo: f.codigo || "",
+          origen: mesa ? "mesa" : "venta",
+          empresaId: empresaId,
+          sucursalId: f.sucursalId || sucursalId,
+          created_at: f.created_at
+        });
+        creados++;
+      }
+      mostrarErrorSync("");
+      if (creados) console.log(`✅ Se crearon ${creados} pedido(s) a partir de ventas.`);
+    } catch (error) {
+      console.error("❌ No se pudieron pasar las ventas a Pedidos:", error);
+      const sinPermiso = String(error?.code || error?.message || "").toLowerCase().includes("permission");
+      mostrarErrorSync(sinPermiso
+        ? "Las ventas de Facturación no se pueden pasar a Pedidos: las reglas de Firebase no lo permiten. Mandá una captura de este aviso."
+        : "Las ventas de Facturación no se pudieron pasar a Pedidos: " + (error?.message || error));
+    } finally {
+      sincronizando = false;
+    }
+    return creados;
+  }
+
   async function renderTodo() {
     if (!empresaId) return; // todavía no llegó la sesión
-    const todos = await cargarPedidos();
+    let todos = await cargarPedidos();
+    // Las ventas que todavía no tengan su pedido se pasan a Pedidos
+    const nuevos = await sincronizarVentasConPedidos(todos);
+    if (nuevos > 0) todos = await cargarPedidos();
     pedidos = todos;
     renderTabla();
     renderAmbiguoBanner();
@@ -667,7 +799,7 @@
           <span><strong>Fecha:</strong> ${formatearFecha(pedido.created_at)}</span>
         </div>
         <div class="detalle-row">
-          <span><strong>Tipo:</strong> ${pedido.deliveryType === "pickup" ? "Retiro en local" : "Delivery"}</span>
+          <span><strong>Tipo:</strong> ${tipoPedido(pedido, true)}</span>
           <span><strong>Estado actual:</strong> ${getEstadoLabel(pedido.status)}</span>
         </div>
         <hr />
@@ -753,7 +885,7 @@
     document.getElementById("detalle-telefono").textContent = pedido.customer?.phone || "—";
     document.getElementById("detalle-fecha").textContent = formatearFecha(pedido.created_at);
     document.getElementById("detalle-estado").textContent = getEstadoLabel(pedido.status);
-    document.getElementById("detalle-tipo").textContent = pedido.deliveryType === "pickup" ? "Retiro en local" : "Delivery";
+    document.getElementById("detalle-tipo").textContent = tipoPedido(pedido, true);
     document.getElementById("detalle-direccion").textContent = pedido.customer?.address || "—";
 
     const list = document.getElementById("detalle-items-list");
@@ -804,6 +936,83 @@
   }
 
   /* ============================================================
+     NUEVO / EDITAR PEDIDO EN PANTALLA COMPLETA (sin scroll)
+     ------------------------------------------------------------
+     Mismo estilo que la pantalla de cobro de Facturación: ocupa toda
+     la pantalla, datos del pedido a la izquierda y productos a la
+     derecha. No se saca ningún campo; solo se reacomodan.
+     En el celular queda en una sola columna.
+     ============================================================ */
+  function pantallaCompletaPedidos() {
+    if (document.getElementById("pedido-grande-style")) return;
+    const style = document.createElement("style");
+    style.id = "pedido-grande-style";
+    style.textContent = `
+      #nuevo-pedido-modal, #editar-pedido-modal { padding: 0 !important; align-items: stretch !important; justify-content: stretch !important; }
+      #nuevo-pedido-modal .modal-card, #editar-pedido-modal .modal-card {
+        width: 100vw !important; max-width: 100vw !important; height: 100vh !important; max-height: 100vh !important;
+        border-radius: 0 !important; margin: 0 !important; display: flex !important; flex-direction: column !important;
+      }
+      #nuevo-pedido-modal .modal-head, #editar-pedido-modal .modal-head {
+        background: #0369a1; flex-shrink: 0; padding: 14px 24px !important;
+      }
+      #nuevo-pedido-modal .modal-head h3, #editar-pedido-modal .modal-head h3 { color: #fff !important; font-size: 20px; }
+      #nuevo-pedido-modal .modal-close, #editar-pedido-modal .modal-close { color: #fff !important; }
+      #nuevo-pedido-modal .modal-body, #editar-pedido-modal .modal-body {
+        flex: 1 1 auto; overflow-y: auto; padding: 18px 24px !important;
+      }
+      #nuevo-pedido-form, #editar-pedido-form {
+        max-width: 1280px; margin: 0 auto; min-height: 100%;
+        display: grid; grid-template-columns: minmax(360px, 430px) 1fr; column-gap: 28px;
+        grid-template-areas: "datos items" "datos total" "acciones acciones";
+        grid-template-rows: 1fr auto auto; box-sizing: border-box;
+      }
+      #nuevo-pedido-form > .nuevo-pedido-grid, #editar-pedido-form > .nuevo-pedido-grid { grid-area: datos; align-self: start; }
+      #nuevo-pedido-form > .full-width, #editar-pedido-form > .full-width {
+        grid-area: items; display: flex; flex-direction: column; min-height: 0;
+      }
+      #nuevo-pedido-form > .total-pedido, #editar-pedido-form > .total-pedido { grid-area: total; font-size: 24px; }
+      #nuevo-pedido-form > .modal-actions, #editar-pedido-form > .modal-actions {
+        grid-area: acciones; justify-content: flex-end; gap: 10px; margin-top: 10px !important;
+      }
+      #nuevo-pedido-form > .modal-actions .btn, #editar-pedido-form > .modal-actions .btn {
+        flex: 0 0 auto !important; min-width: 150px; padding: 11px 22px;
+      }
+      #nuevo-pedido-cancelar, #editar-pedido-cancelar {
+        background: #6b7280 !important; border-color: #6b7280 !important; color: #fff !important;
+      }
+      #nuevo-pedido-modal .nuevo-pedido-grid input, #nuevo-pedido-modal .nuevo-pedido-grid select,
+      #editar-pedido-modal .nuevo-pedido-grid input, #editar-pedido-modal .nuevo-pedido-grid select { padding: 9px 12px; }
+      /* Buscador de productos arriba y lista debajo */
+      #nuevo-pedido-form > .full-width > label, #editar-pedido-form > .full-width > label { order: -2; font-size: 15px; }
+      #nuevo-pedido-form .add-item-row, #editar-pedido-form .add-item-row { order: -1; margin: 0 0 10px !important; }
+      #np-item-nombre, #ep-item-nombre { border: 2px solid #c7d2fe !important; padding: 10px 12px !important; font-size: 15px !important; }
+      #nuevo-pedido-form .items-list, #editar-pedido-form .items-list {
+        flex: 1 1 auto; max-height: calc(100vh - 320px); min-height: 160px; background: #fff; padding: 4px 12px;
+      }
+      #nuevo-pedido-form .items-list .item-row, #editar-pedido-form .items-list .item-row { padding: 9px 0; font-size: 15px; }
+      #np-options-list, #ep-options-list { max-height: 300px !important; z-index: 30 !important;
+        border-top: 1px solid #d1d5db !important; border-radius: 8px !important; box-shadow: 0 12px 24px -12px rgba(0,0,0,.25); }
+      @media (max-width: 900px) {
+        #nuevo-pedido-form, #editar-pedido-form {
+          grid-template-columns: 1fr; grid-template-areas: "datos" "items" "total" "acciones"; grid-template-rows: auto;
+        }
+        #nuevo-pedido-form .items-list, #editar-pedido-form .items-list { max-height: 260px; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Título "Items" más claro y textos de ayuda
+    ["np", "ep"].forEach(pre => {
+      const nombre = document.getElementById(pre + "-item-nombre");
+      if (nombre) nombre.placeholder = "Buscar producto… (Enter o tocalo para agregar)";
+      const lista = document.getElementById(pre + "-items-list");
+      const titulo = lista && lista.parentElement.querySelector("label");
+      if (titulo) titulo.textContent = "Productos";
+    });
+  }
+
+  /* ============================================================
      NUEVO PEDIDO (MODAL con combobox)
      ============================================================ */
   let npCombobox = null;
@@ -837,6 +1046,8 @@
     actualizarTotalNuevo();
 
     document.getElementById("nuevo-pedido-modal").classList.add("open");
+    // Cursor listo en Cliente
+    setTimeout(() => document.getElementById("np-cliente")?.focus(), 80);
   }
 
   function cerrarModalNuevoPedido() {
@@ -895,7 +1106,10 @@
       return;
     }
 
-    nuevoPedidoItems.push({ name: nombre, qty: cantidad, price: precio });
+    // Si el mismo producto (mismo precio) ya está, se suma la cantidad
+    const existenteNuevo = nuevoPedidoItems.find(i => normalizarTexto(i.name) === normalizarTexto(nombre) && i.price === precio);
+    if (existenteNuevo) existenteNuevo.qty += cantidad;
+    else nuevoPedidoItems.push({ name: nombre, qty: cantidad, price: precio });
     renderItemsListNuevo();
     actualizarTotalNuevo();
 
@@ -979,7 +1193,8 @@
     if (addItemBtn) addItemBtn.addEventListener("click", agregarItemNuevo);
 
     npCombobox = initCombobox('np-combobox', 'np-item-nombre', 'np-options-list', function(name, price) {
-      precioInput.value = formatearNumero(price);
+      precioInput.value = formatearNumero(precioMenuEnGs(price));
+      agregarItemNuevo();
     });
 
     precioInput.addEventListener('blur', function() {
@@ -990,7 +1205,19 @@
     });
 
     document.getElementById("np-item-nombre").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") { e.preventDefault(); agregarItemNuevo(); }
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      const texto = e.target.value.trim();
+      if (texto && !precioInput.value.trim()) {
+        const q = normalizarTexto(texto);
+        const coincidencias = productos.filter(p => normalizarTexto(p.name).includes(q));
+        const elegido = coincidencias.find(p => normalizarTexto(p.name).startsWith(q)) || coincidencias[0];
+        if (elegido) {
+          e.target.value = elegido.name;
+          precioInput.value = formatearNumero(precioMenuEnGs(elegido.price));
+        }
+      }
+      agregarItemNuevo();
     });
     precioInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") { e.preventDefault(); agregarItemNuevo(); }
@@ -1041,8 +1268,15 @@
       epCombobox.setOptions(productos);
       epCombobox.clear();
     }
+    if (!productos.length) {
+      cargarProductos().then(lista => {
+        productos = lista;
+        if (epCombobox) epCombobox.setOptions(productos);
+      });
+    }
 
     document.getElementById("editar-pedido-modal").classList.add("open");
+    setTimeout(() => document.getElementById("ep-item-nombre")?.focus(), 80);
   }
 
   function cerrarModalEditarPedido() {
@@ -1103,7 +1337,10 @@
       return;
     }
 
-    editPedidoItems.push({ name: nombre, qty: cantidad, price: precio });
+    // Si el mismo producto (mismo precio) ya está, se suma la cantidad
+    const existenteEditar = editPedidoItems.find(i => normalizarTexto(i.name) === normalizarTexto(nombre) && i.price === precio);
+    if (existenteEditar) existenteEditar.qty += cantidad;
+    else editPedidoItems.push({ name: nombre, qty: cantidad, price: precio });
     renderItemsListEditar();
     actualizarTotalEditar();
 
@@ -1189,7 +1426,8 @@
     if (addItemBtn) addItemBtn.addEventListener("click", agregarItemEditar);
 
     epCombobox = initCombobox('ep-combobox', 'ep-item-nombre', 'ep-options-list', function(name, price) {
-      precioInput.value = formatearNumero(price);
+      precioInput.value = formatearNumero(precioMenuEnGs(price));
+      agregarItemEditar();
     });
 
     precioInput.addEventListener('blur', function() {
@@ -1200,7 +1438,19 @@
     });
 
     document.getElementById("ep-item-nombre").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") { e.preventDefault(); agregarItemEditar(); }
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      const texto = e.target.value.trim();
+      if (texto && !precioInput.value.trim()) {
+        const q = normalizarTexto(texto);
+        const coincidencias = productos.filter(p => normalizarTexto(p.name).includes(q));
+        const elegido = coincidencias.find(p => normalizarTexto(p.name).startsWith(q)) || coincidencias[0];
+        if (elegido) {
+          e.target.value = elegido.name;
+          precioInput.value = formatearNumero(precioMenuEnGs(elegido.price));
+        }
+      }
+      agregarItemEditar();
     });
     precioInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") { e.preventDefault(); agregarItemEditar(); }
@@ -1275,9 +1525,61 @@
     initNuevoPedidoModal();
     initEditarPedidoModal();
     initAmbiguo();
+    pantallaCompletaPedidos();
+    ["np-tipo", "ep-tipo"].forEach(id => {
+      const sel = document.getElementById(id);
+      if (sel && !sel.querySelector('option[value="mesa"]')) {
+        sel.insertAdjacentHTML("beforeend", '<option value="mesa">En mesa</option>');
+      }
+    });
     renderTodo();
+
+    // Desde el acceso rápido del Panel principal (pedidos.html?nuevo=1)
+    // se abre directo "Nuevo pedido". Se saca el parámetro para que, al
+    // recargar o cerrar, quede la lista de pedidos normal.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("nuevo") === "1") {
+      window.history.replaceState(null, "", window.location.pathname);
+      abrirModalNuevoPedido();
+    }
 
     setInterval(renderTodo, 30000);
   });
 
+})();
+
+/* ==============================================================
+   ETIQUETAS DE ESTADO CON COLOR LLENO (agregado)
+   --------------------------------------------------------------
+   Las etiquetas de estado de la lista (Pendiente, Confirmada,
+   Entregado, Pagada, Crítico, Activo...) pasan de fondo clarito a
+   color lleno con letra blanca:
+     verde = OK / confirmado / entregado / pagado / activo
+     amarillo = pendiente / bajo
+     rojo = cancelado / anulado / crítico / inactivo
+     azul = preparando · violeta = en camino · gris = sin cargo
+   ============================================================== */
+(function () {
+  "use strict";
+  if (document.getElementById("estados-solidos-style")) return;
+  const style = document.createElement("style");
+  style.id = "estados-solidos-style";
+  style.textContent = `
+    span.estado, span.status {
+      color: #fff !important; border: 0 !important; font-weight: 700 !important;
+      padding: 4px 11px !important; border-radius: 999px !important; display: inline-flex !important;
+      align-items: center; gap: 6px; white-space: nowrap; box-shadow: none !important;
+    }
+    span.estado::before, span.status::before { background: #fff !important; color: #fff !important; border-color: #fff !important; }
+    span.estado.ok, span.estado.estado-ok, span.estado.Delivered, span.estado.Pagada,
+    span.status.ok { background: #16a34a !important; }
+    span.estado.pending, span.estado.Pending, span.estado.Pendiente,
+    span.status.pending { background: #d97706 !important; }
+    span.estado.cancel, span.estado.estado-cancel, span.estado.Canceled, span.estado.Anulada,
+    span.status.cancel { background: #dc2626 !important; }
+    span.estado.Preparing { background: #2563eb !important; }
+    span.estado.Out { background: #7c3aed !important; }
+    span.estado.Sin { background: #6b7280 !important; }
+  `;
+  (document.head || document.documentElement).appendChild(style);
 })();

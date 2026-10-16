@@ -291,3 +291,105 @@
     renderTodo();
   });
 })();
+
+/* ==============================================================
+   PROVEEDORES RÁPIDO (agregado)
+   --------------------------------------------------------------
+   • "Nuevo / Editar proveedor" en pantalla completa, en dos
+     columnas, sin scroll. Los botones quedan fijos abajo.
+   • Cursor listo en "Nombre"; Enter guarda y Esc cancela.
+   • Desde el acceso rápido del Panel principal
+     (proveedores.html?nuevo=1) se abre directo "Nuevo proveedor".
+   No cambia nada de cómo se guardan los proveedores.
+   ============================================================== */
+(function () {
+  "use strict";
+
+  function estilosProveedorGrande() {
+    if (document.getElementById("proveedor-grande-style")) return;
+    const style = document.createElement("style");
+    style.id = "proveedor-grande-style";
+    style.textContent = `
+      #modal-overlay { padding: 0 !important; align-items: stretch !important; justify-content: stretch !important; }
+      #modal-overlay .modal-card {
+        width: 100vw !important; max-width: 100vw !important; height: 100vh !important; max-height: 100vh !important;
+        border-radius: 0 !important; margin: 0 !important; padding: 0 !important;
+        display: flex !important; flex-direction: column !important;
+      }
+      #modal-overlay .modal-head {
+        background: #0369a1 !important; flex-shrink: 0; padding: 14px 24px !important; margin: 0 !important;
+        display: flex; align-items: center; justify-content: space-between;
+      }
+      #modal-overlay .modal-head h3 { color: #fff !important; font-size: 22px !important; margin: 0 !important; }
+      #modal-overlay .modal-close { color: #fff !important; background: rgba(255,255,255,.15) !important; border: 0 !important; }
+      #modal-overlay .modal-sub {
+        flex-shrink: 0; width: 100%; max-width: 1000px; margin: 0 auto !important; box-sizing: border-box;
+        padding: 12px 24px 0 !important; font-size: 13px; color: #6b7280; border: 0 !important;
+      }
+      #modal-overlay .modal-body {
+        flex: 1 1 auto; overflow-y: auto; width: 100%; max-width: 1000px; margin: 0 auto !important; box-sizing: border-box;
+        display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 20px 32px !important;
+        align-content: start; padding: 18px 24px !important;
+      }
+      #modal-overlay .modal-body > .modal-field { grid-column: auto !important; }
+      #modal-overlay .modal-field input { padding-top: 11px !important; padding-bottom: 11px !important; font-size: 15px !important; }
+      #modal-overlay .modal-card > .modal-actions {
+        flex-shrink: 0; display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+        margin: 0 !important; padding: 12px 24px !important; border-top: 1px solid #e5e7eb !important; background: #fbfbfc;
+      }
+      #modal-overlay .modal-card > .modal-actions .btn { flex: 0 0 auto !important; min-width: 150px !important; padding: 11px 22px !important; }
+      #modal-cancel { background: #6b7280 !important; border-color: #6b7280 !important; color: #fff !important; }
+      .proveedor-ayuda { margin-right: auto; font-size: 12.5px; color: #6b7280; }
+      @media (max-width: 800px) {
+        #modal-overlay .modal-body { grid-template-columns: 1fr !important; }
+        .proveedor-ayuda { display: none; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Los botones van a una barra fija abajo (estén donde estén en el HTML)
+    const card = document.querySelector("#modal-overlay .modal-card");
+    const acciones = document.querySelector("#modal-overlay .modal-actions");
+    if (card && acciones) {
+      if (acciones.parentElement !== card) card.appendChild(acciones);
+      acciones.style.gridColumn = "";
+      if (!acciones.querySelector(".proveedor-ayuda")) {
+        acciones.insertAdjacentHTML("afterbegin", '<span class="proveedor-ayuda">Enter para guardar · Esc para cancelar</span>');
+      }
+    }
+  }
+
+  function atajos() {
+    const overlay = document.getElementById("modal-overlay");
+    if (!overlay) return;
+    overlay.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && e.target && e.target.tagName === "INPUT") {
+        e.preventDefault();
+        document.getElementById("modal-save")?.click();
+      }
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape") return;
+      const confirm = document.getElementById("confirm-overlay");
+      if (confirm && confirm.classList.contains("open")) { document.getElementById("confirm-cancel")?.click(); return; }
+      if (overlay.classList.contains("open")) document.getElementById("modal-cancel")?.click();
+    });
+    // Al editar, el cursor también va a "Nombre"
+    document.getElementById("proveedores-body")?.addEventListener("click", (e) => {
+      if (e.target.closest(".editar")) setTimeout(() => document.getElementById("f-name")?.focus(), 60);
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    estilosProveedorGrande();
+    atajos();
+  });
+
+  document.addEventListener("sesionLista", function () {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("nuevo") === "1") {
+      window.history.replaceState(null, "", window.location.pathname);
+      setTimeout(() => document.getElementById("add-proveedor-btn")?.click(), 0);
+    }
+  });
+})();

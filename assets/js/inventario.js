@@ -34,6 +34,9 @@
   const ICON_DELETE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>';
   // Ícono de "comprar / reponer stock" — sin color fijo para heredar el
   // estilo de .action-btn (igual que editar/eliminar)
+  // Ícono de "registrar salida" (consumo de personal, cortesía, vencido)
+  const ICON_SALIDA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
+  let salidaTargetId = null;
   const ICON_CARRITO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>';
 
   /* ============================================================
@@ -290,6 +293,7 @@
               <button type="button" class="action-btn editar" data-id="${ins.id}" title="Editar insumo" aria-label="Editar">${ICON_EDIT}</button>
               <button type="button" class="action-btn action-btn-danger eliminar" data-id="${ins.id}" title="Eliminar insumo" aria-label="Eliminar">${ICON_DELETE}</button>
               <button type="button" class="action-btn comprar" data-id="${ins.id}" title="Comprar / Reponer stock" aria-label="Comprar">${ICON_CARRITO}</button>
+              <button type="button" class="action-btn action-btn-salida salida" data-id="${ins.id}" title="Registrar salida (consumo, cortesía, vencido)" aria-label="Registrar salida">${ICON_SALIDA}</button>
             </div>
           </td>
         `;
@@ -297,6 +301,7 @@
         tr.querySelector(".editar").addEventListener("click", () => abrirModalEditar(ins.id));
         tr.querySelector(".eliminar").addEventListener("click", () => confirmarEliminarInsumo(ins.id));
         tr.querySelector(".comprar").addEventListener("click", () => abrirModalComprar(ins.id));
+        tr.querySelector(".salida").addEventListener("click", () => abrirModalSalida(ins.id));
         tbody.appendChild(tr);
       });
     }
@@ -707,6 +712,188 @@
   }
 
   /* ============================================================
+     MODAL: REGISTRAR SALIDA (sin venta)
+     ------------------------------------------------------------
+     Para lo que sale del stock sin venderse: consumo del personal,
+     cortesías, vencido o roto. Descuenta el stock y deja el
+     movimiento guardado en "movimientos_inventario" (con su motivo
+     y su valor a costo). NO se registra como gasto: ese gasto ya se
+     anotó cuando se compró el insumo.
+     El modal se crea desde acá, así no hace falta tocar el HTML.
+     ============================================================ */
+  function asegurarModalSalida() {
+    if (document.getElementById("salida-insumo-modal")) return;
+
+    const style = document.createElement("style");
+    style.id = "salida-insumo-style";
+    style.textContent = `
+      .action-btn-salida:hover { border-color: #ea580c !important; color: #ea580c !important; background: #fff7ed !important; }
+      #salida-insumo-modal .modal-card { max-width: 460px; width: 95%; }
+      #salida-insumo-modal .salida-info { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;
+        padding: 12px 14px; margin-bottom: 16px; display: flex; justify-content: space-between; gap: 10px; }
+      #salida-insumo-modal .salida-info strong { font-size: 15px; }
+      #salida-insumo-modal label { display: block; font-size: 13px; font-weight: 600; color: #4b5563; margin: 0 0 6px; }
+      #salida-insumo-modal input, #salida-insumo-modal select { width: 100%; box-sizing: border-box; padding: 10px 12px;
+        border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; font-family: inherit; margin-bottom: 14px; }
+      #salida-insumo-modal .salida-rapidos { display: flex; gap: 8px; margin: -6px 0 14px; }
+      #salida-insumo-modal .salida-rapidos button { flex: 1; padding: 7px 0; border: 1px solid #fdba74; background: #fff7ed;
+        color: #9a3412; border-radius: 8px; font-weight: 700; cursor: pointer; }
+      #salida-insumo-modal .salida-resultado { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px;
+        padding: 12px 14px; text-align: center; color: #9a3412; font-size: 14px; }
+      #salida-insumo-modal .salida-resultado strong { font-size: 20px; display: block; color: #7c2d12; }
+      #salida-insumo-modal .salida-error { color: #b91c1c; font-size: 13px; font-weight: 600; min-height: 18px; margin-top: 8px; text-align: center; }
+      #salida-insumo-modal .modal-actions { justify-content: flex-end; }
+      #salida-insumo-modal .modal-actions .btn { flex: 0 0 auto; min-width: 130px; }
+      #salida-cancelar { background: #6b7280 !important; border-color: #6b7280 !important; color: #fff !important; }
+      #salida-guardar { background: #ea580c !important; border-color: #ea580c !important; color: #fff !important; }
+      #salida-guardar:disabled { opacity: .55; cursor: not-allowed; }
+    `;
+    document.head.appendChild(style);
+
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    overlay.id = "salida-insumo-modal";
+    overlay.innerHTML = `
+      <div class="modal-card">
+        <div class="modal-head">
+          <h3>Registrar salida</h3>
+          <button class="modal-close" id="salida-cerrar" type="button">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="salida-info">
+            <span>Insumo: <strong id="salida-nombre">—</strong></span>
+            <span>Stock: <strong id="salida-stock">0</strong></span>
+          </div>
+          <label for="salida-cantidad">¿Cuánto salió?</label>
+          <input type="number" id="salida-cantidad" min="0" step="0.01" value="1">
+          <div class="salida-rapidos">
+            <button type="button" data-val="1">1</button><button type="button" data-val="2">2</button>
+            <button type="button" data-val="5">5</button><button type="button" data-val="10">10</button>
+          </div>
+          <label for="salida-motivo">Motivo</label>
+          <select id="salida-motivo">
+            <option value="Consumo de personal">Consumo de personal</option>
+            <option value="Cortesía">Cortesía</option>
+            <option value="Vencido / roto">Vencido / roto</option>
+            <option value="Otro">Otro</option>
+          </select>
+          <label for="salida-detalle">Detalle (opcional)</label>
+          <input type="text" id="salida-detalle" placeholder="Ej.: almuerzo de los mozos" autocomplete="off">
+          <div class="salida-resultado">Después de la salida quedan<strong id="salida-quedan">0</strong></div>
+          <div class="salida-error" id="salida-error"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn" id="salida-cancelar" type="button">Cancelar</button>
+          <button class="btn" id="salida-guardar" type="button">Registrar salida</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const cantidad = document.getElementById("salida-cantidad");
+    cantidad.addEventListener("input", actualizarVistaSalida);
+    overlay.querySelectorAll(".salida-rapidos button").forEach(b => b.addEventListener("click", () => {
+      cantidad.value = b.dataset.val; actualizarVistaSalida(); cantidad.focus();
+    }));
+    document.getElementById("salida-cerrar").addEventListener("click", cerrarModalSalida);
+    document.getElementById("salida-cancelar").addEventListener("click", cerrarModalSalida);
+    document.getElementById("salida-guardar").addEventListener("click", guardarSalida);
+    overlay.addEventListener("click", e => { if (e.target === overlay) cerrarModalSalida(); });
+    overlay.addEventListener("keydown", e => {
+      if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); guardarSalida(); }
+      if (e.key === "Escape") cerrarModalSalida();
+    });
+  }
+
+  function actualizarVistaSalida() {
+    const insumo = insumos.find(i => i.id === salidaTargetId);
+    if (!insumo) return;
+    const cant = parseFloat(document.getElementById("salida-cantidad").value) || 0;
+    const stock = Number(insumo.cantidad) || 0;
+    const quedan = stock - cant;
+    document.getElementById("salida-quedan").textContent = `${Math.max(0, +quedan.toFixed(2))} ${insumo.unidad || ''}`;
+    const errorEl = document.getElementById("salida-error");
+    const btn = document.getElementById("salida-guardar");
+    if (cant <= 0) { errorEl.textContent = ""; btn.disabled = true; }
+    else if (quedan < 0) { errorEl.textContent = `No hay tanto stock: hay ${stock} ${insumo.unidad || ''}.`; btn.disabled = true; }
+    else { errorEl.textContent = ""; btn.disabled = false; }
+  }
+
+  function abrirModalSalida(id) {
+    const insumo = insumos.find(i => i.id === id);
+    if (!insumo) return;
+    asegurarModalSalida();
+    salidaTargetId = id;
+    document.getElementById("salida-nombre").textContent = insumo.nombre || "—";
+    document.getElementById("salida-stock").textContent = `${insumo.cantidad || 0} ${insumo.unidad || ''}`;
+    document.getElementById("salida-cantidad").value = 1;
+    document.getElementById("salida-motivo").selectedIndex = 0;
+    document.getElementById("salida-detalle").value = "";
+    const btn = document.getElementById("salida-guardar");
+    btn.textContent = "Registrar salida";
+    actualizarVistaSalida();
+    document.getElementById("salida-insumo-modal").classList.add("open");
+    setTimeout(() => document.getElementById("salida-cantidad").select(), 50);
+  }
+
+  function cerrarModalSalida() {
+    const overlay = document.getElementById("salida-insumo-modal");
+    if (overlay) overlay.classList.remove("open");
+    salidaTargetId = null;
+  }
+
+  async function guardarSalida() {
+    const insumo = insumos.find(i => i.id === salidaTargetId);
+    if (!insumo) return;
+    const btn = document.getElementById("salida-guardar");
+    if (btn.disabled) return;
+    const cant = parseFloat(document.getElementById("salida-cantidad").value) || 0;
+    const stock = Number(insumo.cantidad) || 0;
+    if (cant <= 0 || cant > stock) return;
+    const nuevoStock = +(stock - cant).toFixed(2);
+    const motivo = document.getElementById("salida-motivo").value;
+    const detalle = document.getElementById("salida-detalle").value.trim();
+
+    btn.disabled = true;
+    btn.textContent = "Registrando...";
+    try {
+      await actualizarStockInsumo(insumo.id, nuevoStock);
+    } catch (e) {
+      document.getElementById("salida-error").textContent = "No se pudo descontar el stock. Intentá de nuevo.";
+      btn.disabled = false; btn.textContent = "Registrar salida";
+      return;
+    }
+
+    // Historial del movimiento (no es un gasto: el gasto ya se anotó al comprar)
+    try {
+      const ahora = new Date();
+      await db.collection('movimientos_inventario').add({
+        empresaId, sucursalId,
+        tipo: 'salida',
+        motivo, detalle,
+        insumoId: insumo.id,
+        insumoNombre: insumo.nombre || '',
+        cantidad: cant,
+        unidad: insumo.unidad || '',
+        costoUnitario: insumo.costoUnitario || 0,
+        valor: cant * (insumo.costoUnitario || 0),
+        stockAnterior: stock,
+        stockNuevo: nuevoStock,
+        usuario: sesionActual?.nombre || '',
+        fecha: ahora.toISOString().slice(0, 10),
+        created_at: ahora.toISOString()
+      });
+    } catch (e) {
+      console.error("No se pudo guardar el historial de la salida:", e);
+      alert("El stock se descontó, pero no se pudo guardar el historial de la salida.\n\n" +
+        "Si el error dice \"permission\", hay que permitir en las reglas de Firestore la colección 'movimientos_inventario'.\n\n" +
+        "Detalle: " + (e?.message || e));
+    }
+
+    cerrarModalSalida();
+    await renderTodo();
+  }
+
+  /* ============================================================
      MODAL: CONFIRMAR ELIMINACIÓN
      ============================================================ */
   function confirmarEliminarInsumo(id) {
@@ -800,4 +987,135 @@
       window.__gastroInventarioInterval = setInterval(renderTodo, 30000);
     }
   });
+})();
+
+/* ==============================================================
+   INVENTARIO RÁPIDO (agregado)
+   --------------------------------------------------------------
+   • "Nuevo / Editar insumo" en pantalla completa, con las 3
+     secciones lado a lado (sin scroll en computadora).
+   • Enter guarda el insumo (menos en Proveedor, para poder elegir
+     de la lista) y Esc cancela.
+   • Desde el acceso rápido del Panel principal
+     (inventario.html?nuevo=1) se abre directo "Nuevo insumo".
+   No cambia nada de cómo se guardan los insumos.
+   ============================================================== */
+(function () {
+  "use strict";
+
+  function estilosInsumoGrande() {
+    if (document.getElementById("insumo-grande-style")) return;
+    const style = document.createElement("style");
+    style.id = "insumo-grande-style";
+    style.textContent = `
+      #nuevo-insumo-modal { padding: 0 !important; align-items: stretch !important; justify-content: stretch !important; }
+      #nuevo-insumo-modal .modal-card {
+        width: 100vw !important; max-width: 100vw !important; height: 100vh !important; max-height: 100vh !important;
+        border-radius: 0 !important; margin: 0 !important; display: flex !important; flex-direction: column !important;
+      }
+      #nuevo-insumo-modal .modal-head { background: #0369a1; flex-shrink: 0; padding: 14px 24px !important; }
+      #nuevo-insumo-modal .modal-head h3 { color: #fff !important; font-size: 20px !important; }
+      #nuevo-insumo-modal .modal-close { color: #fff !important; }
+      #nuevo-insumo-modal .modal-body { flex: 1 1 auto; overflow-y: auto; padding: 20px 24px !important; }
+      #form-nuevo-insumo {
+        max-width: 1320px; margin: 0 auto; display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start;
+      }
+      #form-nuevo-insumo .form-section { margin: 0 !important; padding: 18px 20px !important; }
+      #form-nuevo-insumo .form-section-title { margin-bottom: 12px; }
+      #form-nuevo-insumo .form-grid { grid-template-columns: 1fr !important; gap: 12px !important; margin-bottom: 12px !important; }
+      #form-nuevo-insumo .form-section:nth-child(2) .form-grid { grid-template-columns: 1fr 1fr !important; }
+      #form-nuevo-insumo .form-grid:last-child { margin-bottom: 0 !important; }
+      #form-nuevo-insumo .field input, #form-nuevo-insumo .field select { padding: 10px 12px; }
+      #form-nuevo-insumo .costo-preview { margin-top: 12px; }
+      #nuevo-insumo-modal .modal-actions {
+        flex-shrink: 0; display: flex; justify-content: flex-end; gap: 10px;
+        padding: 12px 24px !important; border-top: 1px solid #e5e7eb; background: #fbfbfc;
+      }
+      #nuevo-insumo-modal .modal-actions .btn { flex: 0 0 auto !important; min-width: 150px; padding: 11px 22px; }
+      #cancelar-nuevo-insumo { background: #6b7280 !important; border-color: #6b7280 !important; color: #fff !important; }
+      .insumo-ayuda { margin-right: auto; align-self: center; font-size: 12.5px; color: #6b7280; }
+      @media (max-width: 1000px) {
+        #form-nuevo-insumo { grid-template-columns: 1fr; }
+        #form-nuevo-insumo .form-section:nth-child(2) .form-grid { grid-template-columns: 1fr !important; }
+        .insumo-ayuda { display: none; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    const acciones = document.querySelector("#nuevo-insumo-modal .modal-actions");
+    if (acciones && !acciones.querySelector(".insumo-ayuda")) {
+      acciones.insertAdjacentHTML("afterbegin", '<span class="insumo-ayuda">Enter para guardar · Esc para cancelar</span>');
+    }
+  }
+
+  function atajosTeclado() {
+    const form = document.getElementById("form-nuevo-insumo");
+    const overlay = document.getElementById("nuevo-insumo-modal");
+    if (!form || !overlay) return;
+
+    form.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter") return;
+      const t = e.target;
+      if (!t || t.tagName !== "INPUT") return;
+      e.preventDefault();
+      if (t.id === "input-proveedor") return; // en Proveedor, Enter no guarda
+      document.getElementById("guardar-nuevo-insumo")?.click();
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && overlay.classList.contains("open")) {
+        document.getElementById("cancelar-nuevo-insumo")?.click();
+      }
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    estilosInsumoGrande();
+    atajosTeclado();
+  });
+
+  document.addEventListener("sesionLista", function () {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("nuevo") === "1") {
+      window.history.replaceState(null, "", window.location.pathname);
+      setTimeout(() => document.getElementById("btn-nuevo-insumo")?.click(), 0);
+    }
+  });
+})();
+
+/* ==============================================================
+   ETIQUETAS DE ESTADO CON COLOR LLENO (agregado)
+   --------------------------------------------------------------
+   Las etiquetas de estado de la lista (Pendiente, Confirmada,
+   Entregado, Pagada, Crítico, Activo...) pasan de fondo clarito a
+   color lleno con letra blanca:
+     verde = OK / confirmado / entregado / pagado / activo
+     amarillo = pendiente / bajo
+     rojo = cancelado / anulado / crítico / inactivo
+     azul = preparando · violeta = en camino · gris = sin cargo
+   ============================================================== */
+(function () {
+  "use strict";
+  if (document.getElementById("estados-solidos-style")) return;
+  const style = document.createElement("style");
+  style.id = "estados-solidos-style";
+  style.textContent = `
+    span.estado, span.status {
+      color: #fff !important; border: 0 !important; font-weight: 700 !important;
+      padding: 4px 11px !important; border-radius: 999px !important; display: inline-flex !important;
+      align-items: center; gap: 6px; white-space: nowrap; box-shadow: none !important;
+    }
+    span.estado::before, span.status::before { background: #fff !important; color: #fff !important; border-color: #fff !important; }
+    span.estado.ok, span.estado.estado-ok, span.estado.Delivered, span.estado.Pagada,
+    span.status.ok { background: #16a34a !important; }
+    span.estado.pending, span.estado.Pending, span.estado.Pendiente,
+    span.status.pending { background: #d97706 !important; }
+    span.estado.cancel, span.estado.estado-cancel, span.estado.Canceled, span.estado.Anulada,
+    span.status.cancel { background: #dc2626 !important; }
+    span.estado.Preparing { background: #2563eb !important; }
+    span.estado.Out { background: #7c3aed !important; }
+    span.estado.Sin { background: #6b7280 !important; }
+  `;
+  (document.head || document.documentElement).appendChild(style);
 })();

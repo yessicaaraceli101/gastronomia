@@ -4,7 +4,7 @@
   // Marcador de versión: si al recargar la página NO ves este mensaje en
   // la consola del navegador, el archivo que se está sirviendo todavía
   // es una versión anterior de facturacion.js.
-  console.log("%c[facturacion.js] versión con sucursal + pago mixto + titular (v5)", "color:#2563eb;font-weight:bold;");
+  console.log("%c[facturacion.js] versión con sucursal + pago mixto + titular + apertura directa + pantalla compacta sin datos fiscales + buscador de productos + sin cargo + pedido de cada venta (v13)", "color:#2563eb;font-weight:bold;");
 
   // empresaId y sesionActual ahora vienen de auth-check.js (evento
   // "sesionLista"), no de una lista hardcodeada de empresas de prueba.
@@ -498,6 +498,10 @@
 
     doc.setFont(undefined, 'normal');
     doc.setFontSize(7);
+    if (factura.metodoPago === METODO_SIN_CARGO) {
+      doc.text(`SIN CARGO - ${factura.motivoSinCargo || ''}`, anchoMM / 2, y, { align: 'center' });
+      y += 4;
+    }
     doc.text('¡Gracias por su compra!', anchoMM / 2, y, { align: 'center' });
 
     return doc;
@@ -1122,6 +1126,10 @@
     setVal('op-mixto-efectivo', '');
     setVal('op-mixto-transferencia', '');
     setVal('op-titular-transf', '');
+    setVal('op-buscar-prod', '');
+    setVal('op-sincargo-detalle', '');
+    const motivoScEl = document.getElementById('op-sincargo-motivo');
+    if (motivoScEl) motivoScEl.selectedIndex = 0;
     mixtoUltimoEditado = 'efectivo';
     actualizarVisibilidadCobroRapido();
     setVal('op-subtotal', '0');
@@ -1152,6 +1160,11 @@
     rowSeq = 0;
 
     overlay.classList.add('open');
+    // Cursor listo en Cliente (se despliega la lista para elegir rápido)
+    setTimeout(() => {
+      const clienteFoco = document.getElementById('op-cliente');
+      if (clienteFoco) clienteFoco.focus();
+    }, 80);
 
     const metodoEl = document.getElementById('op-metodo-pago');
     if (metodoEl && metodoEl.value === 'Transferencia' && bancoWrap) {
@@ -1496,6 +1509,11 @@
     const cobroRapido = document.getElementById('op-cobro-rapido');
     if (!metodoEl || !cobroRapido) return;
     const esMixto = metodoEl.value === METODO_MIXTO;
+    const esSinCargo = metodoEl.value === METODO_SIN_CARGO;
+    const sinCargoWrap = document.getElementById('op-sincargo-wrap');
+    if (sinCargoWrap) sinCargoWrap.classList.toggle('visible', esSinCargo);
+    const estadoOp = document.getElementById('op-estado');
+    if (estadoOp) estadoOp.disabled = esSinCargo;
     // Con pago mixto también hay efectivo, así que el "cobro rápido"
     // sigue visible (el vuelto se calcula solo sobre la parte en efectivo).
     cobroRapido.classList.toggle('visible', metodoEl.value === 'Efectivo' || esMixto);
@@ -1507,6 +1525,8 @@
     const bancoWrap = document.getElementById('op-banco-wrap');
     if (bancoWrap) bancoWrap.classList.toggle('visible', metodoEl.value === 'Transferencia' || esMixto);
     if (esMixto) completarMixto();
+    // El vuelto se recalcula al cambiar de método (con Mixto, sobre la parte en efectivo)
+    recalcularVuelto();
   }
 
   /* ============================================================
@@ -1523,6 +1543,11 @@
      montoTransferencia, así Caja puede sumar cada parte en su caja.
      ============================================================ */
   const METODO_MIXTO = 'Mixto';
+  // "Sin cargo": consumo de empleados, cortesías o desperdicio. Se
+  // registra qué salió (con sus precios, como referencia), pero la factura
+  // queda con total 0 y estado "Sin cargo": no suma en la caja, ni en
+  // "Ingresos de hoy", ni en ningún reporte que sume totales.
+  const METODO_SIN_CARGO = 'Sin cargo';
   let mixtoUltimoEditado = 'efectivo';
 
   function prepararPagoMixto() {
@@ -1537,6 +1562,12 @@
         .op-mixto-estado{font-size:13px;font-weight:600;min-height:18px;}
         .op-mixto-estado.ok{color:#15803d;}
         .op-mixto-estado.error{color:#b3261e;}
+        .op-sincargo-wrap{display:none;border:2px dashed #fdba74;background:#fff7ed;
+          border-radius:10px;padding:10px 12px;margin:0 0 10px;}
+        .op-sincargo-wrap.visible{display:block;}
+        .op-sincargo-titulo{font-size:13px;font-weight:700;color:#9a3412;margin-bottom:8px;}
+        #op-banco-wrap:not(.visible), #edit-banco-wrap:not(.visible){display:none !important;}
+        #op-banco-wrap.visible, #edit-banco-wrap.visible{display:block !important;}
       `;
       document.head.appendChild(style);
     }
@@ -1546,7 +1577,37 @@
       if (select && !select.querySelector('option[value="' + METODO_MIXTO + '"]')) {
         select.insertAdjacentHTML('beforeend', '<option value="' + METODO_MIXTO + '">Mixto (Efectivo + Transferencia)</option>');
       }
+      if (select && !select.querySelector('option[value="' + METODO_SIN_CARGO + '"]')) {
+        select.insertAdjacentHTML('beforeend', '<option value="' + METODO_SIN_CARGO + '">Sin cargo (no se cobra)</option>');
+      }
     });
+    // El estado "Sin cargo" tiene que existir en la edición rápida para poder mostrarlo
+    const editEstado = document.getElementById('edit-estado');
+    if (editEstado && !editEstado.querySelector('option[value="Sin cargo"]')) {
+      editEstado.insertAdjacentHTML('beforeend', '<option value="Sin cargo">Sin cargo</option>');
+    }
+
+    const bancoWrapSc = document.getElementById('op-banco-wrap');
+    if (bancoWrapSc && !document.getElementById('op-sincargo-wrap')) {
+      bancoWrapSc.insertAdjacentHTML('beforebegin', `
+        <div class="op-sincargo-wrap" id="op-sincargo-wrap">
+          <div class="op-sincargo-titulo">Se registra lo que salió, pero no se cobra ni entra en la caja.</div>
+          <div class="op-grid cols-2" style="margin-bottom:0;">
+            <div class="op-field">
+              <label for="op-sincargo-motivo">Motivo</label>
+              <select id="op-sincargo-motivo">
+                <option value="Consumo de empleados">Consumo de empleados</option>
+                <option value="Cortesía a cliente">Cortesía a cliente</option>
+                <option value="Desperdicio / error">Desperdicio / error</option>
+              </select>
+            </div>
+            <div class="op-field">
+              <label for="op-sincargo-detalle">Detalle (opcional)</label>
+              <input type="text" id="op-sincargo-detalle" placeholder="Ej.: almuerzo de Juan" autocomplete="off">
+            </div>
+          </div>
+        </div>`);
+    }
 
     // Nombre de la persona que hizo la transferencia (debajo de Banco / N.º de comprobante)
     [['op-banco-wrap', 'op-titular-transf'], ['edit-banco-wrap', 'edit-titular-transf']].forEach(([wrapId, inputId]) => {
@@ -1592,6 +1653,223 @@
         });
       });
     }
+  }
+
+  /* ============================================================
+     PANTALLA DE COBRO COMPACTA (sin scroll en computadora)
+     ------------------------------------------------------------
+     No se saca ningún campo: solo se reacomodan.
+       • Cliente y CI/RUC en la misma fila.
+       • "Monto recibido / Vuelto" pasa a la columna derecha, debajo
+         del total (antes ocupaba todo el ancho con números enormes).
+       • Menos espacios, encabezado y pie más bajos.
+     En pantallas chicas (celular) queda en una sola columna, como antes.
+     ============================================================ */
+  function compactarModalOperacion() {
+    const overlay = document.getElementById('op-overlay');
+    if (!overlay || overlay.dataset.compacto) return;
+    overlay.dataset.compacto = '1';
+
+    if (!document.getElementById('op-compacto-style')) {
+      const style = document.createElement('style');
+      style.id = 'op-compacto-style';
+      style.textContent = `
+        #op-overlay .op-head h3, #op-modal-title { color: #fff !important; }
+        /* Barra superior en el mismo celeste del menú lateral */
+        #op-overlay .op-head { background: #0369a1 !important; }
+        #op-overlay .op-head .eyebrow { color: rgba(255,255,255,.8) !important; }
+        #op-overlay .op-close { background: rgba(255,255,255,.15) !important; color: #fff !important; border-color: transparent !important; }
+        /* "Datos fiscales (opcional)" no se usa: se oculta. Sus campos
+           siguen existiendo con sus valores por defecto, así las ventas
+           se guardan igual que siempre. */
+        #op-overlay .op-avanzado { display: none !important; }
+
+        /* Buscador rápido de productos */
+        .op-buscador { position: relative; margin: 0 0 10px; }
+        .op-buscador input {
+          width: 100%; box-sizing: border-box; padding: 9px 12px 9px 36px;
+          border: 2px solid #c7d2fe; border-radius: 8px; font-size: 14px; background: #fff;
+        }
+        .op-buscador input:focus { outline: none; border-color: #3557ff; box-shadow: 0 0 0 3px rgba(53,87,255,.15); }
+        .op-buscador svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+          width: 17px; height: 17px; color: #6b7280; pointer-events: none; }
+        .op-buscador-lista { display: none; position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30;
+          background: #fff; border: 1px solid #dde1e8; border-radius: 8px; max-height: 260px; overflow-y: auto;
+          box-shadow: 0 12px 24px -12px rgba(0,0,0,.25); }
+        .op-buscador-lista.show { display: block; }
+        .op-buscador-item { display: flex; justify-content: space-between; gap: 12px; padding: 9px 12px;
+          cursor: pointer; font-size: 14px; border-bottom: 1px solid #f2f3f6; }
+        .op-buscador-item:last-child { border-bottom: none; }
+        .op-buscador-item.activo, .op-buscador-item:hover { background: #eef2ff; }
+        .op-buscador-item small { color: #3557ff; font-weight: 700; white-space: nowrap; }
+        .op-buscador-vacio { padding: 9px 12px; color: #9aa2b1; font-size: 13px; }
+        @media (min-width: 901px) {
+          #op-overlay .op-head { padding-top: 10px !important; padding-bottom: 10px !important; }
+          #op-overlay .op-head h3 { font-size: 18px !important; margin: 2px 0 0 !important; }
+          #op-overlay .op-body { max-width: 1280px !important; padding-top: 14px !important; padding-bottom: 12px !important; }
+          #op-overlay .op-columns { grid-template-columns: minmax(380px, 440px) 1fr !important; gap: 24px !important; }
+          #op-overlay .op-grid { gap: 10px !important; margin-bottom: 10px !important; }
+          #op-overlay .op-grid-cliente { grid-template-columns: 1.5fr 1fr !important; }
+          #op-overlay .op-field { gap: 4px !important; }
+          #op-overlay .op-field input, #op-overlay .op-field select, #op-overlay .op-combobox input {
+            padding-top: 7px !important; padding-bottom: 7px !important;
+          }
+          #op-overlay .op-section-label { margin: 0 0 8px !important; }
+          #op-overlay .op-cuentas-wrap { margin-bottom: 10px !important; max-height: 240px; overflow-y: auto; }
+          #op-overlay table.op-cuentas tbody td { padding: 5px 8px !important; }
+          #op-overlay .op-mixto-wrap { padding: 10px 12px; margin-bottom: 10px; }
+          #op-overlay .op-avanzado { margin: 10px 0 0 !important; }
+          #op-overlay .op-foot { padding-top: 10px !important; padding-bottom: 10px !important; }
+
+          /* Monto recibido / Vuelto, dentro de la columna derecha */
+          #op-overlay .op-col-right .op-cobro-rapido {
+            margin: 14px 0 0 !important; padding: 14px 18px !important;
+            gap: 18px !important; border-radius: 12px !important;
+          }
+          #op-overlay .op-col-right .op-cobro-campo { gap: 6px !important; }
+          #op-overlay .op-col-right .op-cobro-campo label { font-size: 13px !important; }
+          #op-overlay .op-col-right .op-cobro-input {
+            padding: 10px 14px !important; font-size: 30px !important; border-width: 2px !important;
+          }
+          #op-overlay .op-col-right .op-cobro-vuelto { font-size: 34px !important; padding: 6px 0 !important; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Cliente y CI/RUC en la misma fila
+    const clienteInput = document.getElementById('op-cliente');
+    const ciInput = document.getElementById('op-cliente-ci');
+    if (clienteInput && ciInput) {
+      const campoCliente = clienteInput.closest('.op-field');
+      const campoCi = ciInput.closest('.op-field');
+      const filaCliente = campoCliente && campoCliente.parentElement;
+      const filaCi = campoCi && campoCi.parentElement;
+      if (filaCliente && filaCi && filaCliente !== filaCi) {
+        filaCliente.appendChild(campoCi);
+        campoCliente.classList.remove('span-2');
+        campoCi.classList.remove('span-2');
+        filaCliente.classList.add('op-grid-cliente');
+        if (!filaCi.children.length) filaCi.remove();
+      }
+    }
+
+    prepararBuscadorProductos(overlay);
+
+    // "Monto recibido / Vuelto" a la columna derecha
+    const cobro = document.getElementById('op-cobro-rapido');
+    const columnaDerecha = overlay.querySelector('.op-col-right');
+    if (cobro && columnaDerecha) columnaDerecha.appendChild(cobro);
+  }
+
+  /* ============================================================
+     BUSCADOR RÁPIDO DE PRODUCTOS
+     ------------------------------------------------------------
+     Se escribe parte del nombre, se elige con las flechas ↑ ↓ y se
+     agrega con Enter (o tocándolo). Si el producto ya está en la
+     tabla, suma 1 a la cantidad en vez de repetir la fila. El
+     selector de cada fila sigue funcionando igual que antes.
+     ============================================================ */
+  let buscadorResultados = [];
+  let buscadorActivo = 0;
+
+  function normalizarTexto(t) {
+    return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function precioProductoEnMoneda(p) {
+    const precioUSD = Number(p.price ?? p.precio ?? 0);
+    const precio = precioUSD * (rates[monedaOperacionActual()] || 1);
+    return precio ? Number(precio.toFixed(2)) : 0;
+  }
+
+  function prepararBuscadorProductos(overlay) {
+    if (document.getElementById('op-buscar-prod')) return;
+    const encabezado = overlay.querySelector('.op-col-right .op-section-label');
+    if (!encabezado) return;
+    encabezado.insertAdjacentHTML('afterend', `
+      <div class="op-buscador">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" id="op-buscar-prod" placeholder="Buscar producto… (Enter para agregar)" autocomplete="off">
+        <div class="op-buscador-lista" id="op-buscar-lista"></div>
+      </div>`);
+
+    const input = document.getElementById('op-buscar-prod');
+    const lista = document.getElementById('op-buscar-lista');
+
+    function pintarLista() {
+      const q = normalizarTexto(input.value.trim());
+      if (!q) { lista.classList.remove('show'); buscadorResultados = []; return; }
+      buscadorResultados = productos
+        .filter(p => normalizarTexto(p.name || p.nombre).includes(q))
+        .sort((a, b) => {
+          // Primero los que empiezan con lo escrito
+          const ea = normalizarTexto(a.name || a.nombre).startsWith(q) ? 0 : 1;
+          const eb = normalizarTexto(b.name || b.nombre).startsWith(q) ? 0 : 1;
+          return ea - eb || String(a.name || a.nombre).localeCompare(String(b.name || b.nombre), 'es');
+        })
+        .slice(0, 8);
+      if (buscadorActivo >= buscadorResultados.length) buscadorActivo = 0;
+      const m = monedaOperacionActual();
+      const sim = symbols[m] || '';
+      lista.innerHTML = buscadorResultados.length
+        ? buscadorResultados.map((p, i) => `
+            <div class="op-buscador-item${i === buscadorActivo ? ' activo' : ''}" data-i="${i}">
+              <span>${p.name || p.nombre || 'Producto'}</span>
+              <small>${sim}${fmtMoneda(precioProductoEnMoneda(p), m)}</small>
+            </div>`).join('')
+        : `<div class="op-buscador-vacio">No hay productos con "${input.value.trim()}"</div>`;
+      lista.classList.add('show');
+    }
+
+    function elegir(i) {
+      const p = buscadorResultados[i];
+      if (!p) return;
+      agregarProductoRapido(p);
+      input.value = '';
+      buscadorActivo = 0;
+      lista.classList.remove('show');
+      input.focus();
+    }
+
+    input.addEventListener('input', () => { buscadorActivo = 0; pintarLista(); });
+    input.addEventListener('focus', pintarLista);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' && buscadorResultados.length) {
+        e.preventDefault(); buscadorActivo = (buscadorActivo + 1) % buscadorResultados.length; pintarLista();
+      } else if (e.key === 'ArrowUp' && buscadorResultados.length) {
+        e.preventDefault(); buscadorActivo = (buscadorActivo - 1 + buscadorResultados.length) % buscadorResultados.length; pintarLista();
+      } else if (e.key === 'Enter') {
+        e.preventDefault(); elegir(buscadorActivo);
+      } else if (e.key === 'Escape') {
+        e.stopPropagation(); lista.classList.remove('show');
+      }
+    });
+    lista.addEventListener('mousedown', (e) => {
+      const item = e.target.closest('.op-buscador-item');
+      if (item) { e.preventDefault(); elegir(Number(item.dataset.i)); }
+    });
+    input.addEventListener('blur', () => setTimeout(() => lista.classList.remove('show'), 150));
+  }
+
+  function agregarProductoRapido(p) {
+    // Si ya está en la tabla, sumamos 1 a la cantidad
+    const filas = document.querySelectorAll('#op-cuentas-body tr:not(.op-empty-rows)');
+    for (const tr of filas) {
+      const select = tr.querySelector('.producto-select');
+      if (select && select.value === p.id) {
+        const cant = tr.querySelector('.cantidad');
+        cant.value = (Number(cant.value) || 0) + 1;
+        recalcularLinea(tr);
+        return;
+      }
+    }
+    agregarFilaProducto({
+      productoId: p.id,
+      producto: p.name || p.nombre || 'Producto',
+      cantidad: 1,
+      precio: precioProductoEnMoneda(p)
+    });
   }
 
   function monedaOperacionActual() {
@@ -1653,6 +1931,10 @@
   // Texto del método de pago para el detalle, el ticket y la factura
   function textoMetodoPago(factura) {
     const metodo = factura.metodoPago || factura.metodo || '—';
+    if (metodo === METODO_SIN_CARGO) {
+      const valor = factura.valorReferencia ? ` · valor ${formatearPrecioEnMoneda(factura.valorReferencia, factura.moneda || 'Gs')}` : '';
+      return `Sin cargo (${factura.motivoSinCargo || 'sin motivo'}${factura.detalleSinCargo ? ': ' + factura.detalleSinCargo : ''})${valor}`;
+    }
     if (metodo !== METODO_MIXTO) return metodo;
     const m = factura.moneda || 'Gs';
     return `Mixto (Efectivo ${formatearPrecioEnMoneda(factura.montoEfectivo || 0, m)} + ` +
@@ -1661,12 +1943,72 @@
 
   // Cuánto de cada factura corresponde a cada caja (todo en Gs)
   function montosPorCaja(metodoPago, totalGs, efectivoMixtoGs) {
+    if (metodoPago === METODO_SIN_CARGO) return { montoEfectivo: 0, montoTransferencia: 0 };
     if (metodoPago === METODO_MIXTO) {
       const ef = Math.min(Math.max(0, efectivoMixtoGs || 0), totalGs);
       return { montoEfectivo: ef, montoTransferencia: totalGs - ef };
     }
     if (metodoPago === 'Efectivo') return { montoEfectivo: totalGs, montoTransferencia: 0 };
     return { montoEfectivo: 0, montoTransferencia: totalGs };
+  }
+
+  /* ============================================================
+     PEDIDO A PARTIR DE UNA VENTA DEL MENÚ
+     ------------------------------------------------------------
+     "Registrar compra" en el Menú (incluido "Cargar pedido" desde
+     Mesas) crea la factura y, además, su pedido en la colección
+     "pedidos" con el mismo formato que usa Pedidos (customer, items,
+     deliveryType, status...). Queda como Pendiente para cocina; se
+     marca Entregado con el ✓ en Pedidos.
+     ============================================================ */
+  async function crearPedidoDesdeVenta(factura, facturaId) {
+    try {
+      const numeroFactura = String(factura.codigo || '').replace(/^FAC-/, '');
+      const mesa = String(factura.mesa || '').trim();
+      const numeroMesa = mesa.replace(/^mesa\s*/i, '').trim();
+      const desdeFacturacion = !!document.getElementById('facturas-body');
+      const idPedido = mesa
+        ? `MESA-${(numeroMesa || mesa).replace(/[^\w-]/g, '')}-${numeroFactura}`
+        : `${desdeFacturacion ? 'VENTA' : 'MENU'}-${numeroFactura}`;
+      const pedido = {
+        customer: {
+          name: factura.cliente?.name || 'Consumidor Final',
+          phone: factura.cliente?.phone || '',
+          address: mesa ? (/^mesa/i.test(mesa) ? mesa.replace(/^mesa/i, 'Mesa') : `Mesa ${mesa}`) : ''
+        },
+        deliveryType: mesa ? 'mesa' : 'pickup',
+        mesa: mesa,
+        status: 'Pending',
+        items: (factura.items || []).map(i => ({
+          name: String(i.producto || 'Producto').replace(/ \(no está en el catálogo\)$/, ''),
+          qty: i.cantidad || 1,
+          price: Math.round(i.precioGs ?? i.precio ?? 0)
+        })),
+        charges: { delivery: 0, tax: 0 },
+        paymentMethod: factura.metodoPago || '',
+        facturaId: facturaId || '',
+        facturaCodigo: factura.codigo || '',
+        origen: mesa ? 'mesa' : (desdeFacturacion ? 'facturacion' : 'menu'),
+        empresaId: empresaId,
+        sucursalId: factura.sucursalId || sucursalId,
+        created_at: factura.created_at || new Date().toISOString()
+      };
+      await db.collection('pedidos').doc(idPedido).set(pedido);
+      console.log('✅ Pedido creado desde la venta:', idPedido);
+      return idPedido;
+    } catch (error) {
+      console.warn('⚠️ La venta se guardó, pero no se pudo crear su pedido en Pedidos:', error);
+      // Se avisa en pantalla (antes quedaba escondido en la consola)
+      const sinPermiso = String(error?.code || error?.message || '').toLowerCase().includes('permission');
+      alert(
+        'La venta se guardó bien, pero NO se pudo crear su pedido en Pedidos.\n\n' +
+        (sinPermiso
+          ? 'Motivo: las reglas de Firebase no permiten crear este pedido.'
+          : 'Motivo: ' + (error?.message || error)) +
+        '\n\nMandale una captura de este mensaje a quien te ayuda con el sistema.'
+      );
+      return null;
+    }
   }
 
   // ---------- Guardar ----------
@@ -1678,7 +2020,9 @@
     // que estar abierta, si no, no se puede guardar la venta.
     if (!facturaEditandoId) {
       const metodoActual = document.getElementById('op-metodo-pago').value;
-      if (metodoActual === METODO_MIXTO) {
+      if (metodoActual === METODO_SIN_CARGO) {
+        // No entra plata: no hace falta ninguna caja abierta
+      } else if (metodoActual === METODO_MIXTO) {
         // Un pago mixto entra en las dos cajas: tienen que estar abiertas ambas
         const estadoCajasMixto = await obtenerEstadoCajas();
         if (!estadoCajasMixto.efectivo || !estadoCajasMixto.transferencia) {
@@ -1835,11 +2179,24 @@
         estado: estado
       };
 
+      if (metodoPago === METODO_SIN_CARGO) {
+        payload.valorReferencia = payload.total; // lo que valía a precio de venta
+        payload.subtotal = 0;
+        payload.noGravada = 0;
+        payload.total = 0;
+        payload.ivaGravado10 = 0;
+        payload.ivaGravado5 = 0;
+        payload.ivaExento = 0;
+        payload.estado = 'Sin cargo';
+        payload.motivoSinCargo = document.getElementById('op-sincargo-motivo')?.value || '';
+        payload.detalleSinCargo = (document.getElementById('op-sincargo-detalle')?.value || '').trim();
+      }
+
       // Cuánto entra en cada caja (para Caja y reportes)
       const montosCaja = montosPorCaja(metodoPago, payload.total, mixtoEfectivoGs);
       payload.montoEfectivo = montosCaja.montoEfectivo;
       payload.montoTransferencia = montosCaja.montoTransferencia;
-      payload.pagos = metodoPago === METODO_MIXTO ? [
+      payload.pagos = metodoPago === METODO_SIN_CARGO ? [] : metodoPago === METODO_MIXTO ? [
         { metodo: 'Efectivo', monto: montosCaja.montoEfectivo },
         { metodo: 'Transferencia', monto: montosCaja.montoTransferencia, banco: banco, titular: titularTransferencia }
       ] : [
@@ -1853,8 +2210,13 @@
         showMsg(`Factura ${codigo} actualizada correctamente.`, 'success');
       } else {
         payload.created_at = new Date().toISOString();
-        await crearFactura(payload);
-        showMsg(`Operación ${codigo} guardada correctamente.`, 'success');
+        const facturaIdNueva = await crearFactura(payload);
+        // Toda venta nueva (desde el Menú, una mesa o Facturación) crea
+        // también su pedido en "Pedidos", para que cocina lo vea. Si eso
+        // falla, la venta igual queda guardada.
+        const pedidoCreado = await crearPedidoDesdeVenta(payload, facturaIdNueva);
+        showMsg(`Operación ${codigo} guardada correctamente.` +
+          (pedidoCreado ? ` Pedido ${pedidoCreado} enviado a Pedidos.` : ''), 'success');
         document.dispatchEvent(new CustomEvent('operacion-factura-guardada', { detail: payload }));
       }
 
@@ -1937,6 +2299,12 @@
       if (clienteCiEl) clienteCiEl.value = ruc;
 
       clienteSeleccionado.ci = ruc;
+
+      // Siguiente paso: buscar productos
+      setTimeout(() => {
+        const buscador = document.getElementById('op-buscar-prod');
+        if (buscador) buscador.focus();
+      }, 60);
     });
   }
 
@@ -1988,7 +2356,9 @@
     }
 
     document.getElementById("modal-subtotal").textContent = formatearPrecio(subtotal);
-    document.getElementById("modal-total").textContent = formatearPrecio(subtotal);
+    document.getElementById("modal-total").textContent = factura.metodoPago === METODO_SIN_CARGO
+      ? `${formatearPrecio(0)} (sin cargo)`
+      : formatearPrecio(subtotal);
 
     document.getElementById("factura-modal-overlay").classList.add("open");
   }
@@ -2272,10 +2642,19 @@
         sucursalId: facturaOriginalEditSimple?.sucursalId || sucursalId,
         updated_at: new Date().toISOString()
       };
-      const montosCajaEditar = montosPorCaja(metodoPago, totalGs, efectivoMixtoEditarGs);
+      if (metodoPago === METODO_SIN_CARGO) {
+        patch.valorReferencia = totalGs;
+        patch.subtotal = 0;
+        patch.total = 0;
+        patch.estado = 'Sin cargo';
+        if (!facturaAntesDeEditar?.motivoSinCargo) patch.motivoSinCargo = 'Consumo de empleados';
+      } else if (facturaAntesDeEditar?.metodoPago === METODO_SIN_CARGO && estado === 'Sin cargo') {
+        patch.estado = 'Pagada'; // dejó de ser sin cargo
+      }
+      const montosCajaEditar = montosPorCaja(metodoPago, patch.total, efectivoMixtoEditarGs);
       patch.montoEfectivo = montosCajaEditar.montoEfectivo;
       patch.montoTransferencia = montosCajaEditar.montoTransferencia;
-      patch.pagos = metodoPago === METODO_MIXTO ? [
+      patch.pagos = metodoPago === METODO_SIN_CARGO ? [] : metodoPago === METODO_MIXTO ? [
         { metodo: 'Efectivo', monto: montosCajaEditar.montoEfectivo },
         { metodo: 'Transferencia', monto: montosCajaEditar.montoTransferencia, banco: banco, titular: titularTransferencia }
       ] : [
@@ -2538,6 +2917,7 @@
 
     initNuevaOperacion();
     prepararPagoMixto();
+    compactarModalOperacion();
     wireModalEvents();
     // El modal de "N.º de comprobante repetido" se usa desde el modal de
     // Nueva Operación, que también vive en menu.html (no solo acá) — se
@@ -2561,6 +2941,15 @@
     if (esPaginaFacturacionCompleta) {
       pagina = 1;
       renderTodo();
+      // Desde el acceso rápido del Panel principal se entra con
+      // facturacion.html?nueva=1: se abre directo "Nueva Operación".
+      // Se saca el parámetro de la dirección para que, al recargar o al
+      // cerrar el modal, quede la lista de facturas normal.
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('nueva') === '1') {
+        window.history.replaceState(null, '', window.location.pathname);
+        abrirModalNuevaOperacion();
+      }
       if (!window.__gastroFacturacionInterval) {
         window.__gastroFacturacionInterval = setInterval(renderTodo, 30000);
       }
@@ -2580,4 +2969,40 @@
     }
   });
 
+})();
+
+/* ==============================================================
+   ETIQUETAS DE ESTADO CON COLOR LLENO (agregado)
+   --------------------------------------------------------------
+   Las etiquetas de estado de la lista (Pendiente, Confirmada,
+   Entregado, Pagada, Crítico, Activo...) pasan de fondo clarito a
+   color lleno con letra blanca:
+     verde = OK / confirmado / entregado / pagado / activo
+     amarillo = pendiente / bajo
+     rojo = cancelado / anulado / crítico / inactivo
+     azul = preparando · violeta = en camino · gris = sin cargo
+   ============================================================== */
+(function () {
+  "use strict";
+  if (document.getElementById("estados-solidos-style")) return;
+  const style = document.createElement("style");
+  style.id = "estados-solidos-style";
+  style.textContent = `
+    span.estado, span.status {
+      color: #fff !important; border: 0 !important; font-weight: 700 !important;
+      padding: 4px 11px !important; border-radius: 999px !important; display: inline-flex !important;
+      align-items: center; gap: 6px; white-space: nowrap; box-shadow: none !important;
+    }
+    span.estado::before, span.status::before { background: #fff !important; color: #fff !important; border-color: #fff !important; }
+    span.estado.ok, span.estado.estado-ok, span.estado.Delivered, span.estado.Pagada,
+    span.status.ok { background: #16a34a !important; }
+    span.estado.pending, span.estado.Pending, span.estado.Pendiente,
+    span.status.pending { background: #d97706 !important; }
+    span.estado.cancel, span.estado.estado-cancel, span.estado.Canceled, span.estado.Anulada,
+    span.status.cancel { background: #dc2626 !important; }
+    span.estado.Preparing { background: #2563eb !important; }
+    span.estado.Out { background: #7c3aed !important; }
+    span.estado.Sin { background: #6b7280 !important; }
+  `;
+  (document.head || document.documentElement).appendChild(style);
 })();

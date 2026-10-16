@@ -548,3 +548,201 @@
     renderTodo();
   });
 })();
+
+/* ==============================================================
+   RESERVAS RÁPIDO (agregado)
+   --------------------------------------------------------------
+   • "Nueva / Editar reserva" en pantalla completa, sin scroll, con
+     la barra celeste y los botones fijos abajo.
+   • Estado bien marcado: Confirmada (verde), Pendiente (naranja),
+     Cancelada (rojo).
+   • En una reserva nueva, la fecha arranca en HOY.
+   • Enter guarda y Esc cancela.
+   • Desde el acceso rápido del Panel principal
+     (reservas.html?nuevo=1) se abre directo "Nueva reserva".
+   No cambia nada de cómo se guardan las reservas ni las mesas.
+   ============================================================== */
+(function () {
+  "use strict";
+
+  function hoyLocal() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function estilosReservaGrande() {
+    if (document.getElementById("reserva-grande-style")) return;
+    const style = document.createElement("style");
+    style.id = "reserva-grande-style";
+    style.textContent = `
+      #modal-overlay { padding: 0 !important; align-items: stretch !important; justify-content: stretch !important; }
+      #modal-overlay .modal-card {
+        width: 100vw !important; max-width: 100vw !important; height: 100vh !important; max-height: 100vh !important;
+        border-radius: 0 !important; margin: 0 !important; padding: 0 !important;
+        display: flex !important; flex-direction: column !important;
+      }
+      #modal-overlay .modal-head {
+        background: #0369a1 !important; flex-shrink: 0; padding: 14px 24px !important; margin: 0 !important;
+        display: flex; align-items: center; justify-content: space-between;
+      }
+      #modal-overlay .modal-head h3 { color: #fff !important; font-size: 22px !important; margin: 0 !important; }
+      #modal-overlay .modal-close { color: #fff !important; background: rgba(255,255,255,.15) !important; border: 0 !important; border-radius: 8px; }
+      #modal-overlay .modal-sub {
+        flex-shrink: 0; width: 100%; max-width: 1000px; margin: 0 auto !important; box-sizing: border-box;
+        padding: 12px 24px 0 !important; font-size: 13px; color: #6b7280; border: 0 !important;
+      }
+      #modal-overlay .modal-body {
+        flex: 1 1 auto; overflow-y: auto; width: 100%; max-width: 1000px; margin: 0 auto !important; box-sizing: border-box;
+        display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 20px 32px !important;
+        align-content: start; padding: 18px 24px !important;
+      }
+      #modal-overlay .modal-field input, #modal-overlay .modal-field select {
+        padding-top: 11px !important; padding-bottom: 11px !important; font-size: 15px !important;
+      }
+
+      /* Estado: el elegido queda lleno de color */
+      #modal-overlay .status-options { display: grid !important; grid-template-columns: repeat(3, 1fr); gap: 10px;
+        background: transparent !important; padding: 0 !important; border: 0 !important; }
+      #modal-overlay .status-option {
+        display: flex !important; flex-direction: row !important; align-items: center; justify-content: center; gap: 8px;
+        padding: 13px 10px !important; border-radius: 10px !important; font-size: 15px !important; font-weight: 700 !important;
+        background: #fff !important; color: #6b7280 !important; border: 1.5px solid #d1d5db !important; cursor: pointer;
+        transition: background .15s, color .15s, border-color .15s;
+      }
+      #modal-overlay .status-option i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin: 0 !important; border: 0 !important; }
+      #modal-overlay .status-option[data-status="ok"] i { background: #16a34a; }
+      #modal-overlay .status-option[data-status="pending"] i { background: #ea580c; }
+      #modal-overlay .status-option[data-status="cancel"] i { background: #dc2626; }
+      #modal-overlay .status-option[data-status="ok"].active { background: #16a34a !important; border-color: #16a34a !important; color: #fff !important; }
+      #modal-overlay .status-option[data-status="pending"].active { background: #ea580c !important; border-color: #ea580c !important; color: #fff !important; }
+      #modal-overlay .status-option[data-status="cancel"].active { background: #dc2626 !important; border-color: #dc2626 !important; color: #fff !important; }
+      #modal-overlay .status-option.active i { background: #fff !important; }
+
+      /* Botones fijos abajo */
+      #modal-overlay .modal-card > .modal-actions {
+        flex-shrink: 0; display: flex; align-items: center; gap: 10px;
+        margin: 0 !important; padding: 12px 24px !important; border-top: 1px solid #e5e7eb !important; background: #fbfbfc;
+        grid-column: auto !important;
+      }
+      #modal-overlay .modal-card > .modal-actions .btn { flex: 0 0 auto !important; min-width: 150px !important; padding: 11px 22px !important; }
+      #modal-cancel { background: #6b7280 !important; border-color: #6b7280 !important; color: #fff !important; }
+      .reserva-ayuda { font-size: 12.5px; color: #6b7280; }
+      /* Detalle de la reserva: botón "Cerrar" en rojo */
+      #detail-close-btn { background: #dc2626 !important; border: 1px solid #dc2626 !important; color: #fff !important; }
+      #detail-close-btn:hover { background: #b91c1c !important; border-color: #b91c1c !important; }
+      /* Confirmación de eliminar: "Volver" gris y "Confirmar" rojo, llenos */
+      #confirm-cancel { background: #6b7280 !important; border: 1px solid #6b7280 !important; color: #fff !important; }
+      #confirm-cancel:hover { background: #4b5563 !important; border-color: #4b5563 !important; }
+      #confirm-accept { background: #dc2626 !important; border: 1px solid #dc2626 !important; color: #fff !important; }
+      #confirm-accept:hover { background: #b91c1c !important; border-color: #b91c1c !important; }
+      @media (max-width: 800px) {
+        #modal-overlay .modal-body { grid-template-columns: 1fr !important; }
+        #modal-overlay .modal-body > .span-2 { grid-column: auto !important; }
+        .reserva-ayuda { display: none; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    const card = document.querySelector("#modal-overlay .modal-card");
+    const acciones = document.querySelector("#modal-overlay .modal-actions");
+    if (card && acciones) {
+      if (acciones.parentElement !== card) card.appendChild(acciones);
+      if (!acciones.querySelector(".reserva-ayuda")) {
+        const spacer = acciones.querySelector(".spacer");
+        const ayuda = document.createElement("span");
+        ayuda.className = "reserva-ayuda";
+        ayuda.textContent = "Enter para guardar · Esc para cancelar";
+        if (spacer) spacer.before(ayuda); else acciones.prepend(ayuda);
+      }
+    }
+  }
+
+  function atajos() {
+    const overlay = document.getElementById("modal-overlay");
+    if (!overlay) return;
+
+    // Reserva nueva: la fecha arranca en hoy
+    document.getElementById("new-reserva-btn")?.addEventListener("click", () => {
+      const fecha = document.getElementById("f-date");
+      if (fecha && !fecha.value) fecha.value = hoyLocal();
+    });
+
+    // Enter en un campo = Guardar
+    overlay.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && e.target && e.target.tagName === "INPUT") {
+        e.preventDefault();
+        document.getElementById("modal-save")?.click();
+      }
+    });
+
+    // Esc: cierra lo que esté arriba (confirmación, detalle o la reserva)
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      const abierto = id => document.getElementById(id)?.classList.contains("open");
+      if (abierto("confirm-overlay")) document.getElementById("confirm-cancel")?.click();
+      else if (abierto("detail-overlay")) document.getElementById("detail-close")?.click();
+      else if (abierto("modal-overlay")) document.getElementById("modal-cancel")?.click();
+    });
+
+    // Al editar, el cursor va al nombre del cliente
+    const enfocar = () => setTimeout(() => document.getElementById("f-client")?.focus(), 60);
+    document.getElementById("reservas-body")?.addEventListener("click", (e) => { if (e.target.closest(".editar")) enfocar(); });
+    document.getElementById("detail-edit")?.addEventListener("click", enfocar);
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    estilosReservaGrande();
+    atajos();
+  });
+
+  document.addEventListener("sesionLista", function () {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("nuevo") === "1") {
+      window.history.replaceState(null, "", window.location.pathname);
+      setTimeout(() => document.getElementById("new-reserva-btn")?.click(), 0);
+    }
+  });
+})();
+
+/* ==============================================================
+   ETIQUETAS DE ESTADO CON COLOR LLENO (agregado)
+   --------------------------------------------------------------
+   Las etiquetas de estado de la lista (Pendiente, Confirmada,
+   Entregado, Pagada, Crítico, Activo...) pasan de fondo clarito a
+   color lleno con letra blanca:
+     verde = OK / confirmado / entregado / pagado / activo
+     amarillo = pendiente / bajo
+     rojo = cancelado / anulado / crítico / inactivo
+     azul = preparando · violeta = en camino · gris = sin cargo
+   ============================================================== */
+(function () {
+  "use strict";
+  if (document.getElementById("estados-solidos-style")) return;
+  const style = document.createElement("style");
+  style.id = "estados-solidos-style";
+  style.textContent = `
+    html body span.estado:not(#_e1):not(#_e2), html body span.status:not(#_e1):not(#_e2) {
+      color: #fff !important; border: 0 !important; font-weight: 700 !important;
+      padding: 4px 11px !important; border-radius: 999px !important; display: inline-flex !important;
+      align-items: center; gap: 6px; white-space: nowrap; box-shadow: none !important; opacity: 1 !important;
+    }
+    html body span.estado:not(#_e1):not(#_e2) *, html body span.status:not(#_e1):not(#_e2) * { color: #fff !important; }
+    html body span.estado:not(#_e1):not(#_e2)::before, html body span.status:not(#_e1):not(#_e2)::before,
+    html body span.estado:not(#_e1):not(#_e2)::after, html body span.status:not(#_e1):not(#_e2)::after {
+      display: none !important; content: none !important;
+    }
+    html body span.estado:not(#_e1):not(#_e2).ok, html body span.estado:not(#_e1):not(#_e2).estado-ok, html body span.estado:not(#_e1):not(#_e2).Delivered,
+    html body span.estado:not(#_e1):not(#_e2).Pagada, html body span.estado:not(#_e1):not(#_e2).confirmada,
+    html body span.status:not(#_e1):not(#_e2).ok { background: #16a34a !important; background-color: #16a34a !important; }
+    html body span.estado:not(#_e1):not(#_e2).pending, html body span.estado:not(#_e1):not(#_e2).Pending, html body span.estado:not(#_e1):not(#_e2).Pendiente,
+    html body span.estado:not(#_e1):not(#_e2).pendiente,
+    html body span.status:not(#_e1):not(#_e2).pending { background: #d97706 !important; background-color: #d97706 !important; }
+    html body span.estado:not(#_e1):not(#_e2).cancel, html body span.estado:not(#_e1):not(#_e2).estado-cancel, html body span.estado:not(#_e1):not(#_e2).Canceled,
+    html body span.estado:not(#_e1):not(#_e2).Anulada, html body span.estado:not(#_e1):not(#_e2).cancelada,
+    html body span.status:not(#_e1):not(#_e2).cancel { background: #dc2626 !important; background-color: #dc2626 !important; }
+    html body span.estado:not(#_e1):not(#_e2).Preparing { background: #2563eb !important; background-color: #2563eb !important; }
+    html body span.estado:not(#_e1):not(#_e2).Out { background: #7c3aed !important; background-color: #7c3aed !important; }
+    html body span.estado:not(#_e1):not(#_e2).Sin { background: #6b7280 !important; background-color: #6b7280 !important; }
+  `;
+  (document.head || document.documentElement).appendChild(style);
+})();

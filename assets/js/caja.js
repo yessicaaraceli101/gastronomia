@@ -154,17 +154,23 @@
       : { efectivo: 0, transferencia: total };
   }
 
+  // ⚠️ FIX: antes la consulta filtraba por empresaId Y por created_at a la
+  // vez. Firestore exige un índice compuesto para esa combinación; como no
+  // existía, la consulta fallaba en silencio y la Caja mostraba todo en 0.
+  // Ahora se trae solo por empresaId (no necesita índice) y la fecha se
+  // filtra acá en JS — mismo criterio que el resto del sistema.
   async function getFacturasDesde(fechaISO) {
     try {
       const snapshot = await db.collection('facturas')
         .where('empresaId', '==', empresaId)
-        .where('created_at', '>=', fechaISO)
         .get();
 
+      const desde = new Date(fechaISO);
       const movs = [];
       snapshot.forEach(doc => {
         const f = doc.data();
         if (f.estado === 'Anulada') return;
+        if (!f.created_at || new Date(f.created_at) < desde) return;
         // Estricto: las facturas siempre traen sucursalId (facturacion.js
         // lo asigna al crearlas) — de otra sucursal, o sin asignar (de
         // antes de ese cambio), no cuentan acá. Se filtra en JS en vez de
@@ -181,6 +187,41 @@
       return movs;
     } catch (e) {
       console.error("Error cargando facturas para caja:", e);
+      return [];
+    }
+  }
+
+  /* ------------------------------------------------------------
+     EGRESOS: la colección "gastos" (la llenan las compras de
+     Inventario: "Comprar / Reponer stock", stock inicial y ajustes).
+     Si el gasto dice cómo se pagó (formaPago: 'transferencia'), sale
+     de esa caja; si no lo dice, se toma como pagado en efectivo.
+     ------------------------------------------------------------ */
+  async function getGastosDesde(fechaISO) {
+    try {
+      const snapshot = await db.collection('gastos')
+        .where('empresaId', '==', empresaId)
+        .get();
+      const desde = new Date(fechaISO);
+      const movs = [];
+      snapshot.forEach(doc => {
+        const g = doc.data();
+        // Gasto de otra sucursal queda afuera; uno sin sucursal (viejo) se cuenta
+        if (g.sucursalId && g.sucursalId !== sucursalId) return;
+        const fecha = new Date(g.created_at || (g.fecha ? g.fecha + 'T12:00:00' : 0));
+        if (isNaN(fecha) || fecha < desde) return;
+        const monto = Number(g.monto) || 0;
+        if (monto <= 0) return;
+        const porTransferencia = String(g.formaPago || g.metodoPago || '').toLowerCase().startsWith('transf');
+        movs.push({
+          fecha,
+          efectivo: porTransferencia ? 0 : monto,
+          transferencia: porTransferencia ? monto : 0
+        });
+      });
+      return movs;
+    } catch (e) {
+      console.error("Error cargando gastos para caja:", e);
       return [];
     }
   }
@@ -277,11 +318,21 @@
     // Traemos desde el más antiguo entre "inicio del mes" y "el día elegido"
     // (por si se elige una fecha de un mes anterior), en un solo viaje a Firestore.
     const desde = inicioDia < inicioMes ? inicioDia : inicioMes;
-    const movimientos = await getFacturasDesde(desde.toISOString());
+    const [movimientos, gastos] = await Promise.all([
+      getFacturasDesde(desde.toISOString()),
+      getGastosDesde(desde.toISOString())
+    ]);
 
     let efectivoDiaIng = 0, transDiaIng = 0;
     let efectivoMesIng = 0, transMesIng = 0;
-    const efectivoDiaEgr = 0, transDiaEgr = 0, efectivoMesEgr = 0, transMesEgr = 0; // sin egresos todavía
+    let efectivoDiaEgr = 0, transDiaEgr = 0, efectivoMesEgr = 0, transMesEgr = 0;
+
+    gastos.forEach(g => {
+      const enElDia = g.fecha >= inicioDia && g.fecha < finDia;
+      const enElMes = g.fecha >= inicioMes;
+      if (enElDia) { efectivoDiaEgr += g.efectivo; transDiaEgr += g.transferencia; }
+      if (enElMes) { efectivoMesEgr += g.efectivo; transMesEgr += g.transferencia; }
+    });
 
     movimientos.forEach(m => {
       const enElDia = m.fecha >= inicioDia && m.fecha < finDia;
