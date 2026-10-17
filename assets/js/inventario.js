@@ -1135,7 +1135,7 @@
    con el id de la empresa ({ empresaId, lista: [...] }). Lo que
    agregue o quite la Pizzería no aparece en La Boletería.
    • Si la empresa todavía no tiene lista, arranca con:
-     Confitería, Carnes, Verduras, Bebidas, Lácteos, Otros.
+     Confitería, Bebidas, Comidas, Otros.
    • "Otros" queda siempre al final.
    • Botón "Editar categorías" junto al campo Categoría.
    • Las categorías que ya usan los insumos se muestran igual,
@@ -1145,7 +1145,7 @@
 (function () {
   "use strict";
 
-  const PREDETERMINADAS = ["Confitería", "Carnes", "Verduras", "Bebidas", "Lácteos", "Otros"];
+  const PREDETERMINADAS = ["Confitería", "Bebidas", "Comidas", "Otros"];
   let empresaId = null;
   let lista = [];          // categorías de esta empresa
   let usadas = new Set();  // categorías que ya tienen los insumos
@@ -1208,9 +1208,11 @@
     const cats = categoriasParaMostrar();
     const sel = document.getElementById("input-categoria");
     if (sel) {
+      // Para cargar insumos se ofrecen SOLO las categorías del negocio
+      const propias = ordenar(lista);
       const actual = sel.value;
-      sel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join("");
-      if (actual && cats.includes(actual)) sel.value = actual;
+      sel.innerHTML = propias.map(c => `<option value="${c}">${c}</option>`).join("");
+      if (actual && propias.includes(actual)) sel.value = actual;
     }
     const filtro = document.getElementById("filter-categoria");
     if (filtro) {
@@ -1329,6 +1331,17 @@
   }
 
   function agregarBotonEditar() {
+    if (!document.getElementById("cat-editar-btn-style")) {
+      const st = document.createElement("style");
+      st.id = "cat-editar-btn-style";
+      st.textContent = `
+        button.cat-editar-btn { margin-left: 10px !important; border: 0 !important; background: none !important;
+          color: #0369a1 !important; font-size: 12.5px !important; font-weight: 700 !important; cursor: pointer;
+          padding: 0 !important; text-decoration: underline; box-shadow: none !important; display: inline !important; }
+        button.cat-editar-btn:hover { color: #075985 !important; }
+      `;
+      document.head.appendChild(st);
+    }
     const sel = document.getElementById("input-categoria");
     const label = sel && sel.closest(".field")?.querySelector("label");
     if (!label || label.querySelector(".cat-editar-btn")) return;
