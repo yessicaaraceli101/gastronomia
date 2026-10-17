@@ -1101,21 +1101,274 @@
   const style = document.createElement("style");
   style.id = "estados-solidos-style";
   style.textContent = `
-    span.estado, span.status {
+    html body span.estado:not(#_e1):not(#_e2), html body span.status:not(#_e1):not(#_e2) {
       color: #fff !important; border: 0 !important; font-weight: 700 !important;
       padding: 4px 11px !important; border-radius: 999px !important; display: inline-flex !important;
-      align-items: center; gap: 6px; white-space: nowrap; box-shadow: none !important;
+      align-items: center; gap: 6px; white-space: nowrap; box-shadow: none !important; opacity: 1 !important;
     }
-    span.estado::before, span.status::before { background: #fff !important; color: #fff !important; border-color: #fff !important; }
-    span.estado.ok, span.estado.estado-ok, span.estado.Delivered, span.estado.Pagada,
-    span.status.ok { background: #16a34a !important; }
-    span.estado.pending, span.estado.Pending, span.estado.Pendiente,
-    span.status.pending { background: #d97706 !important; }
-    span.estado.cancel, span.estado.estado-cancel, span.estado.Canceled, span.estado.Anulada,
-    span.status.cancel { background: #dc2626 !important; }
-    span.estado.Preparing { background: #2563eb !important; }
-    span.estado.Out { background: #7c3aed !important; }
-    span.estado.Sin { background: #6b7280 !important; }
+    html body span.estado:not(#_e1):not(#_e2) *, html body span.status:not(#_e1):not(#_e2) * { color: #fff !important; }
+    html body span.estado:not(#_e1):not(#_e2)::before, html body span.status:not(#_e1):not(#_e2)::before,
+    html body span.estado:not(#_e1):not(#_e2)::after, html body span.status:not(#_e1):not(#_e2)::after {
+      display: none !important; content: none !important;
+    }
+    html body span.estado:not(#_e1):not(#_e2).ok, html body span.estado:not(#_e1):not(#_e2).estado-ok, html body span.estado:not(#_e1):not(#_e2).Delivered,
+    html body span.estado:not(#_e1):not(#_e2).Pagada, html body span.estado:not(#_e1):not(#_e2).confirmada,
+    html body span.status:not(#_e1):not(#_e2).ok { background: #16a34a !important; background-color: #16a34a !important; }
+    html body span.estado:not(#_e1):not(#_e2).pending, html body span.estado:not(#_e1):not(#_e2).Pending, html body span.estado:not(#_e1):not(#_e2).Pendiente,
+    html body span.estado:not(#_e1):not(#_e2).pendiente,
+    html body span.status:not(#_e1):not(#_e2).pending { background: #d97706 !important; background-color: #d97706 !important; }
+    html body span.estado:not(#_e1):not(#_e2).cancel, html body span.estado:not(#_e1):not(#_e2).estado-cancel, html body span.estado:not(#_e1):not(#_e2).Canceled,
+    html body span.estado:not(#_e1):not(#_e2).Anulada, html body span.estado:not(#_e1):not(#_e2).cancelada,
+    html body span.status:not(#_e1):not(#_e2).cancel { background: #dc2626 !important; background-color: #dc2626 !important; }
+    html body span.estado:not(#_e1):not(#_e2).Preparing { background: #2563eb !important; background-color: #2563eb !important; }
+    html body span.estado:not(#_e1):not(#_e2).Out { background: #7c3aed !important; background-color: #7c3aed !important; }
+    html body span.estado:not(#_e1):not(#_e2).Sin { background: #6b7280 !important; background-color: #6b7280 !important; }
   `;
   (document.head || document.documentElement).appendChild(style);
+})();
+
+/* ==============================================================
+   CATEGORÍAS PROPIAS DE CADA NEGOCIO (agregado)
+   --------------------------------------------------------------
+   Cada empresa tiene su propia lista de categorías de insumos,
+   guardada en Firestore: colección "categorias_insumo", documento
+   con el id de la empresa ({ empresaId, lista: [...] }). Lo que
+   agregue o quite la Pizzería no aparece en La Boletería.
+   • Si la empresa todavía no tiene lista, arranca con:
+     Confitería, Carnes, Verduras, Bebidas, Lácteos, Otros.
+   • "Otros" queda siempre al final.
+   • Botón "Editar categorías" junto al campo Categoría.
+   • Las categorías que ya usan los insumos se muestran igual,
+     aunque no estén en la lista (no se pierde nada).
+   • Se quita el ejemplo "Ej: Vacío de novillo" del nombre.
+   ============================================================== */
+(function () {
+  "use strict";
+
+  const PREDETERMINADAS = ["Confitería", "Carnes", "Verduras", "Bebidas", "Lácteos", "Otros"];
+  let empresaId = null;
+  let lista = [];          // categorías de esta empresa
+  let usadas = new Set();  // categorías que ya tienen los insumos
+
+  const norm = t => String(t || "").trim();
+  const claveLocal = () => `gastro_categorias_insumo_${empresaId}`;
+
+  function ordenar(arr) {
+    const unicas = [];
+    arr.map(norm).filter(Boolean).forEach(c => {
+      if (!unicas.some(u => u.toLowerCase() === c.toLowerCase())) unicas.push(c);
+    });
+    const sinOtros = unicas.filter(c => c.toLowerCase() !== "otros");
+    return unicas.some(c => c.toLowerCase() === "otros") ? [...sinOtros, "Otros"] : sinOtros;
+  }
+
+  async function cargarLista() {
+    try {
+      const doc = await db.collection("categorias_insumo").doc(empresaId).get();
+      if (doc.exists && Array.isArray(doc.data().lista) && doc.data().lista.length) return ordenar(doc.data().lista);
+    } catch (e) {
+      console.warn("No se pudieron leer las categorías desde Firebase:", e);
+    }
+    try {
+      const local = JSON.parse(localStorage.getItem(claveLocal()) || "null");
+      if (Array.isArray(local) && local.length) return ordenar(local);
+    } catch (e) { /* nada */ }
+    return [...PREDETERMINADAS];
+  }
+
+  async function guardarLista() {
+    lista = ordenar(lista);
+    try { localStorage.setItem(claveLocal(), JSON.stringify(lista)); } catch (e) { /* nada */ }
+    try {
+      await db.collection("categorias_insumo").doc(empresaId).set({ empresaId, lista, updated_at: new Date().toISOString() });
+      return true;
+    } catch (e) {
+      console.error("No se pudieron guardar las categorías en Firebase:", e);
+      alert("Las categorías se guardaron solo en esta computadora: Firebase no permitió guardarlas.\n\n" +
+            "Si el error dice \"permission\", hay que permitir la colección 'categorias_insumo' en las reglas de Firestore.");
+      return false;
+    }
+  }
+
+  async function cargarUsadas() {
+    try {
+      const snap = await db.collection("insumos").where("empresaId", "==", empresaId).get();
+      const set = new Set();
+      snap.forEach(d => { const c = norm(d.data().categoria); if (c) set.add(c); });
+      return set;
+    } catch (e) { return new Set(); }
+  }
+
+  function categoriasParaMostrar() {
+    const extra = [...usadas].filter(u => !lista.some(c => c.toLowerCase() === u.toLowerCase()));
+    return ordenar([...lista.filter(c => c.toLowerCase() !== "otros"), ...extra, ...lista.filter(c => c.toLowerCase() === "otros")]);
+  }
+
+  function pintarSelects() {
+    const cats = categoriasParaMostrar();
+    const sel = document.getElementById("input-categoria");
+    if (sel) {
+      const actual = sel.value;
+      sel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join("");
+      if (actual && cats.includes(actual)) sel.value = actual;
+    }
+    const filtro = document.getElementById("filter-categoria");
+    if (filtro) {
+      const actual = filtro.value || "all";
+      filtro.innerHTML = '<option value="all">Todas las categorías</option>' +
+        cats.map(c => `<option value="${c}">${c}</option>`).join("");
+      filtro.value = cats.includes(actual) ? actual : "all";
+    }
+  }
+
+  // Si al editar un insumo su categoría no está en la lista, se agrega al vuelo
+  function asegurarOpcion(valor) {
+    const sel = document.getElementById("input-categoria");
+    const v = norm(valor);
+    if (!sel || !v) return;
+    if (![...sel.options].some(o => o.value === v)) {
+      const opt = document.createElement("option");
+      opt.value = v; opt.textContent = v;
+      sel.insertBefore(opt, [...sel.options].find(o => o.value === "Otros") || null);
+    }
+  }
+
+  /* ---------- Ventana "Editar categorías" ---------- */
+  function crearEditor() {
+    if (document.getElementById("cat-editor-overlay")) return;
+    const style = document.createElement("style");
+    style.textContent = `
+      .cat-editar-btn { margin-left: 8px; border: 0; background: none; color: #0369a1; font-size: 12.5px;
+        font-weight: 700; cursor: pointer; padding: 0; text-decoration: underline; }
+      #cat-editor-overlay { position: fixed; inset: 0; background: rgba(15,23,20,.5); display: none;
+        align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
+      #cat-editor-overlay.open { display: flex; }
+      #cat-editor { background: #fff; border-radius: 14px; width: 100%; max-width: 420px; overflow: hidden;
+        box-shadow: 0 24px 60px rgba(0,0,0,.25); font-family: inherit; }
+      #cat-editor .cat-head { background: #0369a1; color: #fff; padding: 14px 18px; font-weight: 700; font-size: 17px;
+        display: flex; justify-content: space-between; align-items: center; }
+      #cat-editor .cat-head button { background: rgba(255,255,255,.15); color: #fff; border: 0; border-radius: 8px;
+        width: 30px; height: 30px; font-size: 18px; cursor: pointer; }
+      #cat-editor .cat-body { padding: 16px 18px; }
+      #cat-editor .cat-sub { font-size: 12.5px; color: #6b7280; margin: 0 0 12px; }
+      #cat-editor ul { list-style: none; margin: 0 0 14px; padding: 0; max-height: 260px; overflow-y: auto;
+        border: 1px solid #e5e7eb; border-radius: 10px; }
+      #cat-editor li { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px;
+        border-bottom: 1px solid #f1f2f4; font-size: 14.5px; }
+      #cat-editor li:last-child { border-bottom: 0; }
+      #cat-editor li button { border: 0; background: #fee2e2; color: #b91c1c; border-radius: 6px; width: 28px; height: 28px;
+        cursor: pointer; font-weight: 700; }
+      #cat-editor li .fija { font-size: 12px; color: #9ca3af; }
+      #cat-editor .cat-agregar { display: flex; gap: 8px; }
+      #cat-editor .cat-agregar input { flex: 1; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14.5px; }
+      #cat-editor .cat-agregar button { background: #16a34a; color: #fff; border: 0; border-radius: 8px; padding: 0 16px;
+        font-weight: 700; cursor: pointer; }
+    `;
+    document.head.appendChild(style);
+
+    const ov = document.createElement("div");
+    ov.id = "cat-editor-overlay";
+    ov.innerHTML = `
+      <div id="cat-editor" role="dialog" aria-label="Editar categorías">
+        <div class="cat-head"><span>Categorías de este negocio</span><button type="button" id="cat-cerrar" aria-label="Cerrar">×</button></div>
+        <div class="cat-body">
+          <p class="cat-sub">Solo se cambian para este negocio. Los insumos que ya tienen una categoría no se modifican.</p>
+          <ul id="cat-lista"></ul>
+          <div class="cat-agregar">
+            <input type="text" id="cat-nueva" placeholder="Nueva categoría (ej.: Harinas)" autocomplete="off">
+            <button type="button" id="cat-agregar-btn">Agregar</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+
+    const cerrar = () => ov.classList.remove("open");
+    document.getElementById("cat-cerrar").addEventListener("click", cerrar);
+    ov.addEventListener("click", e => { if (e.target === ov) cerrar(); });
+    // Mientras el editor está abierto, Esc lo cierra solo a él (no a la ventana del insumo)
+    document.addEventListener("keydown", e => {
+      if (!ov.classList.contains("open")) return;
+      if (e.key === "Escape") { e.preventDefault(); e.stopImmediatePropagation(); cerrar(); }
+      else if (e.key === "Enter" && e.target.id === "cat-nueva") { e.preventDefault(); e.stopImmediatePropagation(); agregar(); }
+    }, true);
+    document.getElementById("cat-agregar-btn").addEventListener("click", agregar);
+
+    async function agregar() {
+      const input = document.getElementById("cat-nueva");
+      const nombre = norm(input.value);
+      if (!nombre) return;
+      if (lista.some(c => c.toLowerCase() === nombre.toLowerCase())) { input.value = ""; return; }
+      lista.push(nombre);
+      await guardarLista();
+      input.value = "";
+      pintarEditor(); pintarSelects();
+      const sel = document.getElementById("input-categoria");
+      if (sel) sel.value = nombre;
+      input.focus();
+    }
+  }
+
+  function pintarEditor() {
+    const ul = document.getElementById("cat-lista");
+    if (!ul) return;
+    ul.innerHTML = lista.map(c => c.toLowerCase() === "otros"
+      ? `<li><span>${c}</span><span class="fija">siempre al final</span></li>`
+      : `<li><span>${c}</span><button type="button" data-cat="${c}" title="Quitar">×</button></li>`).join("");
+    ul.querySelectorAll("button[data-cat]").forEach(b => b.addEventListener("click", async () => {
+      lista = lista.filter(c => c !== b.dataset.cat);
+      await guardarLista();
+      pintarEditor(); pintarSelects();
+    }));
+  }
+
+  function abrirEditor() {
+    crearEditor();
+    pintarEditor();
+    document.getElementById("cat-editor-overlay").classList.add("open");
+    setTimeout(() => document.getElementById("cat-nueva")?.focus(), 50);
+  }
+
+  function agregarBotonEditar() {
+    const sel = document.getElementById("input-categoria");
+    const label = sel && sel.closest(".field")?.querySelector("label");
+    if (!label || label.querySelector(".cat-editar-btn")) return;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "cat-editar-btn";
+    btn.textContent = "Editar categorías";
+    btn.addEventListener("click", abrirEditor);
+    label.appendChild(btn);
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const nombre = document.getElementById("input-nombre");
+    if (nombre) nombre.placeholder = "";
+    agregarBotonEditar();
+
+    // Al editar un insumo, que su categoría aparezca aunque no esté en la lista
+    document.getElementById("inventario-body")?.addEventListener("click", (e) => {
+      if (!e.target.closest(".editar")) return;
+      const fila = e.target.closest("tr");
+      const categoria = fila ? fila.children[2]?.textContent : "";
+      setTimeout(() => {
+        asegurarOpcion(categoria);
+        const sel = document.getElementById("input-categoria");
+        if (sel && categoria && norm(categoria) !== "—") sel.value = norm(categoria);
+      }, 0);
+    });
+    // Nuevo insumo: arranca en la primera categoría de la lista
+    document.getElementById("btn-nuevo-insumo")?.addEventListener("click", () => {
+      setTimeout(() => {
+        const sel = document.getElementById("input-categoria");
+        if (sel && sel.options.length) sel.selectedIndex = 0;
+      }, 0);
+    });
+  });
+
+  document.addEventListener("sesionLista", async function (e) {
+    empresaId = e.detail.empresaId;
+    const [l, u] = await Promise.all([cargarLista(), cargarUsadas()]);
+    lista = l; usadas = u;
+    pintarSelects();
+  });
 })();
